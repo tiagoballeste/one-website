@@ -7,12 +7,12 @@ import Grainient from "./Grainient"
 const VIEW_BOX_WIDTH = 399.72
 const VIEW_BOX_HEIGHT = 416.9
 const MASK_OVERSHOOT_FACTOR = 9.5
-const SCALE_EASE_RAMP = 0.08
-const SCALE_EASE_STRENGTH = 0.28
+const SCALE_DURATION = 0.8
+const SCALE_EASE = "sine.inOut"
 
 const GRAINIENT_PROPS = {
   color1: "#0a1e66",
-  color2: "#1B4DFE",
+  color2: "#0c30b1",
   color3: "#0a1e66",
   timeSpeed: 1.7,
   colorBalance: 0,
@@ -115,20 +115,6 @@ export function LogoPreloader() {
 
       return 1 - progress / fadeEndProgress
     }
-    const scaleEase = (progress: number) => {
-      if (progress <= 0) {
-        return 0
-      }
-
-      if (progress >= 1 || progress >= SCALE_EASE_RAMP) {
-        return progress
-      }
-
-      const rampProgress = progress / SCALE_EASE_RAMP
-      const smoothRamp = rampProgress * rampProgress * (3 - 2 * rampProgress)
-
-      return progress * (1 - SCALE_EASE_STRENGTH * (1 - smoothRamp))
-    }
     setMaskTransform(1)
 
     if (reduceMotion) {
@@ -154,6 +140,7 @@ export function LogoPreloader() {
         Math.max(Math.min(logoWidth, logoHeight), 1)) *
       MASK_OVERSHOOT_FACTOR
     const logoScreenFillScale = finalScale / MASK_OVERSHOOT_FACTOR
+    const scaleEase = gsap.parseEase(SCALE_EASE)
     const logoFadeEndProgress = (() => {
       const targetEaseProgress = Math.min(
         Math.max((logoScreenFillScale - 1) / Math.max(finalScale - 1, 1), 0),
@@ -200,8 +187,8 @@ export function LogoPreloader() {
         { scale: 1 },
         {
           scale: finalScale,
-          duration: 1.5,
-          ease: scaleEase,
+          duration: SCALE_DURATION,
+          ease: SCALE_EASE,
           onUpdate() {
             const currentScale = this.targets()[0].scale
             const linearProgress = this.progress()
@@ -220,7 +207,7 @@ export function LogoPreloader() {
         duration: 0.35,
         ease: "power2.out",
         pointerEvents: "none",
-      }, "<1.1")
+      }, "<0.56")
 
     return () => {
       window.removeEventListener("resize", updateViewport)

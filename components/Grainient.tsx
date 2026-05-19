@@ -188,6 +188,8 @@ export default function Grainient({
     canvas.style.width = "100%"
     canvas.style.height = "100%"
     canvas.style.display = "block"
+    canvas.style.opacity = "0"
+    canvas.style.transition = "opacity 180ms ease"
     container.appendChild(canvas)
 
     const geometry = new Triangle(gl)
@@ -234,6 +236,9 @@ export default function Grainient({
       resolution[0] = gl.drawingBufferWidth
       resolution[1] = gl.drawingBufferHeight
       renderer.render({ scene: mesh })
+      requestAnimationFrame(() => {
+        canvas.style.opacity = "1"
+      })
     }
 
     const resizeObserver = new ResizeObserver(setSize)
