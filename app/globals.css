@@ -245,10 +245,24 @@ a {
 
 .logo-preloader__solid {
   background: #070d4f;
+  overflow: hidden;
 }
 
 .logo-preloader__reveal {
   display: block;
+}
+
+.grainient-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.logo-preloader__grainient,
+.logo-preloader__grainient-foreign {
+  width: 100%;
+  height: 100%;
 }
 
 .logo-preloader__mark {
@@ -272,7 +286,7 @@ a {
 .logo-preloader__stroke path {
   fill: transparent;
   stroke: #fff;
-  stroke-width: 3.8;
+  stroke-width: 2.66;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
