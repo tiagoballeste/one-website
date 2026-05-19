@@ -6,7 +6,7 @@ import { gsap } from "gsap"
 const VIEW_BOX_WIDTH = 399.72
 const VIEW_BOX_HEIGHT = 416.9
 const MASK_OVERSHOOT_FACTOR = 9.5
-const LOGO_FADE_END_SCALE = 6
+const SCALE_EASE_RAMP = 0.12
 const LOADER_BLUE = "#070d4f"
 
 const SHIELD_PATHS = [
@@ -78,18 +78,29 @@ export function LogoPreloader() {
         `translate(${originX} ${originY}) scale(${baseScale * scale}) translate(${-VIEW_BOX_WIDTH / 2} ${-VIEW_BOX_HEIGHT / 2})`,
       )
     }
-    const getLogoOpacity = (scale: number) => {
-      const progress = Math.min(Math.max((scale - 1) / Math.max(LOGO_FADE_END_SCALE - 1, 1), 0), 1)
-
+    const getLogoOpacity = (progress: number, fadeEndProgress: number) => {
       if (progress <= 0) {
         return 1
       }
 
-      if (progress >= 1) {
+      if (progress >= fadeEndProgress) {
         return 0
       }
 
-      return 1 - progress
+      return 1 - progress / fadeEndProgress
+    }
+    const scaleEase = (progress: number) => {
+      if (progress <= 0) {
+        return 0
+      }
+
+      if (progress >= 1 || progress >= SCALE_EASE_RAMP) {
+        return progress
+      }
+
+      const rampProgress = progress / SCALE_EASE_RAMP
+
+      return SCALE_EASE_RAMP * (2 * rampProgress * rampProgress - rampProgress * rampProgress * rampProgress)
     }
     setMaskTransform(1)
 
@@ -115,6 +126,27 @@ export function LogoPreloader() {
       (Math.hypot(measuredViewport.width, measuredViewport.height) /
         Math.max(Math.min(logoWidth, logoHeight), 1)) *
       MASK_OVERSHOOT_FACTOR
+    const logoScreenFillScale = finalScale / MASK_OVERSHOOT_FACTOR
+    const logoFadeEndProgress = (() => {
+      const targetEaseProgress = Math.min(
+        Math.max((logoScreenFillScale - 1) / Math.max(finalScale - 1, 1), 0),
+        1,
+      )
+      let low = 0
+      let high = 1
+
+      for (let i = 0; i < 20; i += 1) {
+        const mid = (low + high) / 2
+
+        if (scaleEase(mid) < targetEaseProgress) {
+          low = mid
+        } else {
+          high = mid
+        }
+      }
+
+      return high
+    })()
 
     gsap.set(fillRect, { attr: { y: VIEW_BOX_HEIGHT, height: 0 } })
     gsap.set(revealSvg, { opacity: 0 })
@@ -141,14 +173,15 @@ export function LogoPreloader() {
         { scale: 1 },
         {
           scale: finalScale,
-          duration: 1.4,
-          ease: "power4.inOut",
+          duration: 1.5,
+          ease: scaleEase,
           onUpdate() {
             const currentScale = this.targets()[0].scale
+            const linearProgress = this.progress()
 
             setMaskTransform(currentScale)
             gsap.set(mark, {
-              opacity: getLogoOpacity(currentScale),
+              opacity: getLogoOpacity(linearProgress, logoFadeEndProgress),
               scale: currentScale,
             })
           },
@@ -160,7 +193,7 @@ export function LogoPreloader() {
         duration: 0.35,
         ease: "power2.out",
         pointerEvents: "none",
-      }, "<1.05")
+      }, "<1.1")
 
     return () => {
       window.removeEventListener("resize", updateViewport)
