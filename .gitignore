@@ -20,6 +20,7 @@ pnpm-debug.log*
 
 # local verification artifacts
 preloader-checks/
+hero-checks/
 
 # system files
 .DS_Store
