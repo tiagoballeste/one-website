@@ -12,19 +12,6 @@ export function Hero() {
           aria-hidden="true"
         />
 
-        <header className="site-header">
-          <a className="site-header__brand" href="/" aria-label="ONE Fiança Locatícia">
-            <img src="/logos/logo-one-wide.svg" alt="ONE Fiança Locatícia" />
-          </a>
-
-          <nav className="site-header__nav" aria-label="Navegação principal">
-            <a href="#sobre">Sobre nós</a>
-            <a href="#como-funciona">Como Funciona</a>
-            <a href="#produtos">Produtos</a>
-            <a href="#faq">FAQ</a>
-          </nav>
-        </header>
-
         <div className="hero__content">
           <h1>
             <span>Fiança Locatícia</span>
@@ -34,9 +21,9 @@ export function Hero() {
           </h1>
 
           <p className="hero__copy">
-            A ONE Fiança Locatícia oferece uma solução prática para substituir o fiador
-            tradicional e reduzir a necessidade de caução, ajudando você a avançar no
-            contrato de aluguel com mais tranquilidade.
+            A ONE Fiança Locatícia oferece uma solução prática para substituir o fiador tradicional e
+            reduzir a necessidade de caução, ajudando você a avançar no contrato de aluguel com mais
+            tranquilidade.
           </p>
 
           <div className="hero__actions" aria-label="Ações principais">
