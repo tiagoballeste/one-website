@@ -181,7 +181,7 @@ a {
   letter-spacing: 0;
   word-spacing: 0.04em;
   color: #ffffff;
-  cursor: default;
+  cursor: pointer;
 }
 
 .button--primary {
@@ -196,6 +196,626 @@ a {
     inset 0 0 0 1px rgba(255, 255, 255, 0.09),
     0 18px 36px rgba(4, 5, 18, 0.26);
   backdrop-filter: blur(14px);
+}
+
+.registration-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 3.2vw, 48px);
+}
+
+.registration-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(201, 205, 230, 0.1);
+  backdrop-filter: blur(7px);
+  cursor: pointer;
+}
+
+.registration-modal__sheet {
+  position: relative;
+  width: min(100%, 820px);
+  max-height: min(92svh, 760px);
+  overflow: hidden;
+  border-radius: clamp(20px, 2vw, 28px);
+  background: #c9cde6;
+  color: #03051f;
+  box-shadow:
+    0 36px 110px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+.registration-modal__sheet--success {
+  background: #0a1e66;
+  color: #ffffff;
+}
+
+.registration-modal__main {
+  position: relative;
+  z-index: 2;
+  max-height: min(92svh, 760px);
+  padding: clamp(32px, 5vw, 72px);
+  overflow: auto;
+  transition:
+    filter 220ms ease,
+    opacity 220ms ease;
+}
+
+.registration-modal__main--blurred {
+  filter: blur(5px);
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+.registration-modal__close {
+  position: absolute;
+  top: clamp(18px, 2.2vw, 26px);
+  right: clamp(18px, 2.2vw, 26px);
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(10, 30, 102, 0.14);
+  border-radius: 50%;
+  color: #0a1e66;
+  background: rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+}
+
+.registration-modal__close svg,
+.registration-observation-modal__close svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.registration-stepper {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: clamp(16px, 3vw, 38px);
+  margin: 0 0 clamp(46px, 7.2vw, 64px);
+  padding: 0;
+  list-style: none;
+}
+
+.registration-stepper__item {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  min-width: 0;
+  color: rgba(10, 30, 102, 0.48);
+  text-align: center;
+}
+
+.registration-stepper__dot {
+  display: grid;
+  width: clamp(48px, 5.2vw, 54px);
+  height: clamp(48px, 5.2vw, 54px);
+  place-items: center;
+  border: 1px solid rgba(10, 30, 102, 0.48);
+  border-radius: 50%;
+  color: rgba(10, 30, 102, 0.54);
+  font-size: clamp(21px, 2.1vw, 25px);
+  font-weight: 400;
+}
+
+.registration-stepper__dot.is-active {
+  border-color: #0a1e66;
+  color: #ffffff;
+  background: #0a1e66;
+}
+
+.registration-stepper__label {
+  font-size: clamp(13px, 1.5vw, 16px);
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.registration-stepper__label.is-active {
+  color: #0a1e66;
+}
+
+.registration-stepper__line {
+  position: absolute;
+  top: clamp(24px, 2.6vw, 27px);
+  left: calc(50% + clamp(40px, 5vw, 56px));
+  width: min(112px, 42%);
+  height: 1px;
+  background: rgba(10, 30, 102, 0.4);
+}
+
+.registration-step {
+  min-height: clamp(315px, 38vw, 370px);
+}
+
+.registration-step__header {
+  max-width: 560px;
+  margin-bottom: clamp(30px, 4.2vw, 46px);
+}
+
+.registration-step__header h2 {
+  margin: 0;
+  color: #03051f;
+  font-size: clamp(28px, 3.1vw, 32px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+}
+
+.registration-step__header p {
+  max-width: 520px;
+  margin: 14px 0 0;
+  color: rgba(3, 5, 31, 0.54);
+  font-size: clamp(15px, 1.55vw, 16px);
+  line-height: 1.34;
+  letter-spacing: -0.03em;
+}
+
+.registration-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(26px, 3.8vw, 42px) clamp(30px, 6vw, 56px);
+}
+
+.registration-field {
+  display: grid;
+  gap: 12px;
+  color: #03051f;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.registration-field input,
+.registration-field select {
+  width: 100%;
+  min-width: 0;
+  height: clamp(48px, 5.4vw, 52px);
+  border: 1px solid rgba(3, 5, 31, 0.42);
+  border-radius: 8px;
+  color: #03051f;
+  background: rgba(255, 255, 255, 0.14);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  outline: none;
+  padding: 0 18px;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.registration-field select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(3, 5, 31, 0.55) 50%),
+    linear-gradient(135deg, rgba(3, 5, 31, 0.55) 50%, transparent 50%);
+  background-position:
+    calc(100% - 24px) 50%,
+    calc(100% - 16px) 50%;
+  background-size:
+    8px 8px,
+    8px 8px;
+  background-repeat: no-repeat;
+}
+
+.registration-field input::placeholder,
+.registration-field select:invalid {
+  color: rgba(3, 5, 31, 0.45);
+}
+
+.registration-field input:focus,
+.registration-field select:focus {
+  border-color: #0a1e66;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(10, 30, 102, 0.08);
+}
+
+.registration-field select:disabled {
+  color: rgba(3, 5, 31, 0.42);
+  cursor: not-allowed;
+}
+
+.registration-field__error {
+  color: #9f1d2b;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.registration-profile {
+  display: grid;
+  gap: 26px;
+}
+
+.registration-volume {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.registration-volume legend {
+  margin-bottom: 0;
+  color: #03051f;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.registration-volume__options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(14px, 3vw, 28px);
+}
+
+.registration-volume__option {
+  height: 48px;
+  border: 1px solid rgba(10, 30, 102, 0.46);
+  border-radius: 8px;
+  color: rgba(3, 5, 31, 0.55);
+  background: rgba(255, 255, 255, 0.08);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.registration-volume__option.is-selected {
+  border-color: #0a1e66;
+  color: #0a1e66;
+  box-shadow:
+    inset 0 0 0 1px rgba(10, 30, 102, 0.26),
+    0 0 12px rgba(10, 30, 102, 0.22);
+}
+
+.registration-observation-trigger {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  color: #0a1e66;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.registration-observation-trigger svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.registration-check {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 12px;
+  align-items: start;
+  color: #03051f;
+  font-size: 15px;
+  line-height: 1.27;
+  letter-spacing: -0.03em;
+}
+
+.registration-check input {
+  position: relative;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  border: 1px solid #03051f;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.registration-check input:checked {
+  border-color: #0a1e66;
+  background: #0a1e66;
+}
+
+.registration-check input:checked::after {
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 7px;
+  height: 13px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.registration-check input:focus-visible {
+  outline: 3px solid rgba(10, 30, 102, 0.16);
+  outline-offset: 2px;
+}
+
+.registration-modal__footer {
+  display: grid;
+  grid-template-columns: minmax(0, 148px) minmax(250px, 1fr);
+  gap: clamp(22px, 6vw, 160px);
+  align-items: center;
+  margin-top: clamp(38px, 6vw, 60px);
+  padding-top: clamp(28px, 4vw, 32px);
+  border-top: 1px solid rgba(3, 5, 31, 0.42);
+}
+
+.registration-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 64px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: clamp(17px, 1.9vw, 20px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    opacity 180ms ease;
+}
+
+.registration-button:disabled {
+  cursor: wait;
+  opacity: 0.82;
+}
+
+.registration-button--primary {
+  min-width: min(100%, 374px);
+  padding: 0 30px;
+  justify-self: end;
+  color: #ffffff;
+  background: #0a1e66;
+}
+
+.registration-button--primary.is-loading {
+  width: 64px;
+  min-width: 64px;
+  padding: 0;
+  justify-self: end;
+}
+
+.registration-button--secondary {
+  min-width: 148px;
+  padding: 0 28px;
+  color: #0a1e66;
+  background: transparent;
+  border-color: #0a1e66;
+}
+
+.registration-arrow {
+  width: 27px;
+  height: 27px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  flex: 0 0 auto;
+}
+
+.registration-spinner {
+  width: 21px;
+  height: 21px;
+  border: 2px solid rgba(255, 255, 255, 0.32);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: registration-spin 760ms linear infinite;
+}
+
+@keyframes registration-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.registration-observation-modal {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 5;
+  display: grid;
+  width: min(calc(100% - 40px), 508px);
+  min-height: 370px;
+  padding: clamp(28px, 4vw, 52px);
+  transform: translate(-50%, -50%);
+  border-radius: 10px;
+  color: #ffffff;
+  background: #0a1e66;
+  box-shadow: 0 26px 90px rgba(0, 0, 0, 0.36);
+}
+
+.registration-observation-modal h3 {
+  margin: 0 0 18px;
+  font-size: 20px;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.registration-observation-modal textarea {
+  width: 100%;
+  min-height: 184px;
+  resize: vertical;
+  border: 0;
+  border-radius: 8px;
+  color: #03051f;
+  background: #eef1fb;
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  padding: 18px 22px;
+}
+
+.registration-observation-modal__close {
+  position: absolute;
+  top: 24px;
+  right: 36px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  color: #ffffff;
+  background: transparent;
+  cursor: pointer;
+}
+
+.registration-observation-modal__confirm {
+  justify-self: end;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  margin-top: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: #0a1e66;
+  background: #eef1fb;
+  cursor: pointer;
+}
+
+.registration-submit-expander {
+  position: absolute;
+  z-index: 8;
+  background: #0a1e66;
+  pointer-events: none;
+}
+
+.registration-success {
+  display: grid;
+  gap: clamp(34px, 4vw, 50px);
+  color: #ffffff;
+}
+
+.registration-success__hero {
+  display: grid;
+  grid-template-columns: minmax(80px, 136px) minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 48px);
+  align-items: center;
+}
+
+.registration-success__mark {
+  width: clamp(98px, 14vw, 144px);
+  height: clamp(98px, 14vw, 144px);
+  fill: #c9cde6;
+  filter: drop-shadow(0 8px 12px rgba(201, 205, 230, 0.18));
+}
+
+.registration-success__check {
+  fill: none;
+  stroke: #0a1e66;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 8;
+}
+
+.registration-success h2 {
+  margin: 0;
+  font-size: clamp(44px, 5.5vw, 60px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.registration-success p {
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: clamp(15px, 1.7vw, 16px);
+  line-height: 1.28;
+  letter-spacing: -0.03em;
+}
+
+.registration-success__next h3 {
+  margin: 0 0 14px;
+  font-size: clamp(19px, 2.2vw, 21px);
+  letter-spacing: -0.04em;
+}
+
+.registration-success__cards {
+  display: grid;
+  gap: 10px;
+}
+
+.registration-success__card {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 32px;
+  align-items: center;
+  min-height: 70px;
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.registration-success__card svg {
+  width: 42px;
+  height: 42px;
+  fill: none;
+  stroke: #ffffff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.4;
+}
+
+.registration-success__card h4 {
+  margin: 0;
+  font-size: clamp(18px, 2vw, 20px);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.registration-success__card p {
+  margin: 5px 0 0;
+}
+
+.registration-success__actions {
+  display: grid;
+  grid-template-columns: minmax(210px, 222px) minmax(280px, 1fr);
+  gap: clamp(28px, 12vw, 100px);
+}
+
+.registration-button--success-secondary,
+.registration-button--success-primary {
+  min-height: 66px;
+  padding: 0 30px;
+}
+
+.registration-button--success-secondary {
+  color: #ffffff;
+  background: transparent;
+  border-color: #ffffff;
+}
+
+.registration-button--success-primary {
+  color: #0a1e66;
+  background: #ffffff;
 }
 
 .whatsapp-float {
@@ -712,6 +1332,167 @@ a {
 
   .positioning-card p {
     font-size: 17px;
+  }
+
+  .registration-modal {
+    align-items: start;
+    padding: 12px;
+  }
+
+  .registration-modal__sheet,
+  .registration-modal__main {
+    max-height: calc(100svh - 24px);
+  }
+
+  .registration-modal__sheet {
+    width: 100%;
+    border-radius: 18px;
+  }
+
+  .registration-modal__main {
+    padding: 28px 22px 24px;
+  }
+
+  .registration-modal__close {
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .registration-stepper {
+    gap: 8px;
+    margin-bottom: 38px;
+  }
+
+  .registration-stepper__dot {
+    width: 42px;
+    height: 42px;
+    font-size: 19px;
+  }
+
+  .registration-stepper__label {
+    font-size: 12px;
+  }
+
+  .registration-stepper__line {
+    top: 21px;
+    left: calc(50% + 34px);
+    width: min(54px, 35%);
+  }
+
+  .registration-step {
+    min-height: auto;
+  }
+
+  .registration-step__header {
+    margin-bottom: 28px;
+  }
+
+  .registration-step__header h2 {
+    font-size: clamp(26px, 8vw, 31px);
+  }
+
+  .registration-step__header p {
+    font-size: 15px;
+  }
+
+  .registration-fields {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .registration-field input,
+  .registration-field select {
+    height: 50px;
+  }
+
+  .registration-volume__options {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .registration-observation-trigger {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    font-size: 15px;
+  }
+
+  .registration-check {
+    font-size: 14px;
+  }
+
+  .registration-modal__footer {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 30px;
+    padding-top: 22px;
+  }
+
+  .registration-modal__footer > span {
+    display: none;
+  }
+
+  .registration-button,
+  .registration-button--primary,
+  .registration-button--secondary {
+    width: 100%;
+    min-width: 0;
+    min-height: 58px;
+    justify-self: stretch;
+  }
+
+  .registration-button--primary.is-loading {
+    width: 58px;
+    min-width: 58px;
+    justify-self: end;
+  }
+
+  .registration-observation-modal {
+    width: calc(100% - 28px);
+    min-height: 320px;
+    padding: 44px 20px 24px;
+  }
+
+  .registration-observation-modal__close {
+    top: 12px;
+    right: 14px;
+  }
+
+  .registration-observation-modal textarea {
+    min-height: 170px;
+  }
+
+  .registration-success {
+    gap: 30px;
+  }
+
+  .registration-success__hero {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    text-align: center;
+    justify-items: center;
+  }
+
+  .registration-success h2 {
+    font-size: clamp(40px, 14vw, 54px);
+  }
+
+  .registration-success__card {
+    grid-template-columns: 42px 1fr;
+    gap: 16px;
+    padding: 12px;
+  }
+
+  .registration-success__card svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .registration-success__actions {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
 
