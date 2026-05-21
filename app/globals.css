@@ -265,6 +265,7 @@ a {
   display: block;
   max-width: 100%;
   overflow: visible;
+  line-height: 1.16;
 }
 
 .positioning-section__gradient-line {
@@ -277,6 +278,8 @@ a {
   overflow: visible;
   border-radius: 0;
   backdrop-filter: none;
+  line-height: 1.16;
+  padding-block: 0.06em 0.1em;
 }
 
 .positioning-section__gradient-line .text-content {
@@ -288,6 +291,44 @@ a {
   padding-block: 0.06em 0.1em;
 }
 
+.positioning-section__split-gradient {
+  --positioning-gradient-text: linear-gradient(
+    90deg,
+    #1b4dfe 0%,
+    #c9cde6 25%,
+    #1b4dfe 50%,
+    #c9cde6 75%,
+    #1b4dfe 100%
+  );
+  color: transparent;
+  opacity: 1;
+}
+
+.positioning-section__split-gradient .split-text__word {
+  background-image: var(--positioning-gradient-text);
+  background-size: var(--split-gradient-track-width, 300%) 100%;
+  background-repeat: no-repeat;
+  background-position: calc((var(--split-word-x, 0px) * -1) + var(--split-gradient-shift, 0px)) 50%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.split-text {
+  overflow: visible;
+}
+
+.split-text__word,
+.split-text__line {
+  display: inline-block;
+  overflow: visible;
+  will-change: transform, opacity;
+}
+
+.split-text__line {
+  display: block;
+}
+
 .positioning-section__copy {
   max-width: 860px;
   margin: 34px auto 0;
@@ -296,6 +337,7 @@ a {
   font-weight: 400;
   line-height: 1.26;
   letter-spacing: -0.03em;
+  overflow: visible;
 }
 
 .positioning-section__cards {
@@ -307,6 +349,7 @@ a {
 
 .positioning-card {
   position: relative;
+  height: 100%;
   min-height: 292px;
   padding: 38px 40px 36px;
   overflow: hidden;
@@ -342,6 +385,38 @@ a {
   pointer-events: none;
 }
 
+.positioning-card > :not(.border-trail) {
+  position: relative;
+  z-index: 2;
+}
+
+.border-trail {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.border-trail__beam {
+  position: absolute;
+  top: 0;
+  left: calc(var(--border-trail-size, 80px) * -1);
+  width: var(--border-trail-size, 80px);
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(201, 205, 230, 0.58), transparent);
+  animation: border-trail-lap 4.6s linear infinite;
+}
+
+.positioning-card-motion {
+  min-width: 0;
+  height: 100%;
+  will-change: opacity, transform, filter;
+}
+
 .positioning-card__icon {
   display: block;
   width: 76px;
@@ -370,6 +445,71 @@ a {
   font-weight: 400;
   line-height: 1.28;
   letter-spacing: -0.03em;
+}
+
+@keyframes border-trail-lap {
+  0% {
+    top: 0;
+    left: calc(var(--border-trail-size, 80px) * -1);
+    width: var(--border-trail-size, 80px);
+    height: 2px;
+  }
+
+  24% {
+    top: 0;
+    left: 100%;
+    width: var(--border-trail-size, 80px);
+    height: 2px;
+  }
+
+  25% {
+    top: calc(var(--border-trail-size, 80px) * -1);
+    left: calc(100% - 2px);
+    width: 2px;
+    height: var(--border-trail-size, 80px);
+  }
+
+  49% {
+    top: 100%;
+    left: calc(100% - 2px);
+    width: 2px;
+    height: var(--border-trail-size, 80px);
+  }
+
+  50% {
+    top: calc(100% - 2px);
+    left: 100%;
+    width: var(--border-trail-size, 80px);
+    height: 2px;
+  }
+
+  74% {
+    top: calc(100% - 2px);
+    left: calc(var(--border-trail-size, 80px) * -1);
+    width: var(--border-trail-size, 80px);
+    height: 2px;
+  }
+
+  75% {
+    top: 100%;
+    left: 0;
+    width: 2px;
+    height: var(--border-trail-size, 80px);
+  }
+
+  100% {
+    top: calc(var(--border-trail-size, 80px) * -1);
+    left: 0;
+    width: 2px;
+    height: var(--border-trail-size, 80px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .border-trail__beam {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 .logo-preloader {
@@ -543,27 +683,21 @@ a {
   }
 
   .positioning-section__cards {
-    display: flex;
-    gap: 16px;
+    grid-template-columns: 1fr;
+    gap: 18px;
     margin-top: 44px;
-    padding: 0 24px 12px;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-padding-inline: 24px;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .positioning-section__cards::-webkit-scrollbar {
-    display: none;
+    padding: 0 24px;
+    overflow: visible;
   }
 
   .positioning-card {
-    flex: 0 0 min(82vw, 360px);
     min-height: 292px;
     padding: 34px 30px 32px;
-    scroll-snap-align: start;
     border-radius: 18px;
+  }
+
+  .positioning-card-motion {
+    width: 100%;
   }
 
   .positioning-card__icon {
