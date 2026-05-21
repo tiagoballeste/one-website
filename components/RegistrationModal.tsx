@@ -1,7 +1,7 @@
 "use client"
 
 import { AnimatePresence, motion } from "motion/react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 type RegistrationModalProps = {
   isOpen: boolean
@@ -23,6 +23,19 @@ type FormValues = {
 }
 
 type Errors = Partial<Record<keyof FormValues, string>>
+
+type BrazilState = {
+  id: number
+  nome: string
+  sigla: string
+}
+
+type BrazilCity = {
+  id: number
+  nome: string
+}
+
+let cachedBrazilStates: BrazilState[] | null = null
 
 const initialValues: FormValues = {
   agencyName: "",
@@ -89,6 +102,20 @@ const formatPhone = (value: string) => {
   return digits.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2")
 }
 
+const fetchJson = async <T,>(url: string, signal: AbortSignal): Promise<T> => {
+  const response = await fetch(url, {
+    signal,
+    headers: { Accept: "application/json" },
+  })
+  const contentType = response.headers.get("content-type") ?? ""
+
+  if (!response.ok || !contentType.includes("application/json")) {
+    throw new Error("A fonte publica retornou uma resposta invalida.")
+  }
+
+  return response.json() as Promise<T>
+}
+
 function ArrowIcon({ pulseKey, direction = "right" }: { pulseKey?: number; direction?: "left" | "right" }) {
   return (
     <motion.svg
@@ -115,17 +142,15 @@ function Spinner() {
 
 function SuccessMark() {
   return (
-    <motion.svg
+    <motion.img
       className="registration-success__mark"
-      viewBox="0 0 120 120"
+      src="/icons/registration/check-cadastro-final.svg"
+      alt=""
       aria-hidden="true"
       initial={{ scale: 0.88, rotate: -4, opacity: 0 }}
       animate={{ scale: 1, rotate: 0, opacity: 1 }}
       transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <path d="M60 8 70.5 18.2 85 14.8l5.3 13.9 14.5 3.3-1.6 14.8 11 10-8.2 12.4 4.2 14.3-13.4 6.5-3.2 14.5-14.8-1.5-10.2 10.8L56.3 106 42 110.2l-6.5-13.4-14.5-3.2 1.5-14.8L11.8 68.6 19.9 56 15.8 41.8l13.4-6.5 3.2-14.5 14.8 1.5L57.4 11.5 60 8Z" />
-      <path className="registration-success__check" d="m36 61 16 16 34-38" />
-    </motion.svg>
+    />
   )
 }
 
@@ -158,12 +183,15 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
   const [isExpanding, setIsExpanding] = useState(false)
   const [arrowPulse, setArrowPulse] = useState(0)
   const [expanderBounds, setExpanderBounds] = useState({ top: 0, left: 0, width: 0, height: 0 })
+  const [brazilStates, setBrazilStates] = useState<BrazilState[]>([])
+  const [cities, setCities] = useState<BrazilCity[]>([])
+  const [isStatesLoading, setIsStatesLoading] = useState(false)
+  const [isCitiesLoading, setIsCitiesLoading] = useState(false)
+  const [statesError, setStatesError] = useState("")
+  const [citiesError, setCitiesError] = useState("")
   const modalRef = useRef<HTMLDivElement | null>(null)
   const sheetRef = useRef<HTMLElement | null>(null)
   const submitButtonRef = useRef<HTMLButtonElement | null>(null)
-
-  const selectedState = useMemo(() => states.find((state) => state.value === values.state), [values.state])
-  const availableCities = selectedState?.cities ?? []
 
   useEffect(() => {
     if (!isOpen) return
@@ -211,6 +239,90 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
       document.removeEventListener("keydown", onKeyDown)
     }
   }, [isOpen, isObservationOpen, onClose])
+
+  useEffect(() => {
+    if (!isOpen) return
+    if (cachedBrazilStates) {
+      setBrazilStates(cachedBrazilStates)
+      return
+    }
+
+    const controller = new AbortController()
+
+    const fetchStates = async () => {
+      setIsStatesLoading(true)
+      setStatesError("")
+
+      try {
+        const data = await fetchJson<BrazilState[]>(
+          "https://servicodados.ibge.gov.br/api/v1/localidades/estados",
+          controller.signal,
+        ).catch(() =>
+          fetchJson<BrazilState[]>("https://brasilapi.com.br/api/ibge/uf/v1", controller.signal),
+        )
+        const orderedStates = data
+          .map((state) => ({ id: state.id, nome: state.nome, sigla: state.sigla }))
+          .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+
+        cachedBrazilStates = orderedStates
+        setBrazilStates(orderedStates)
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return
+        setStatesError("Nao foi possivel carregar os estados. Tente novamente.")
+      } finally {
+        if (!controller.signal.aborted) setIsStatesLoading(false)
+      }
+    }
+
+    fetchStates()
+
+    return () => controller.abort()
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!values.state) {
+      setCities([])
+      setCitiesError("")
+      setIsCitiesLoading(false)
+      return
+    }
+
+    const controller = new AbortController()
+
+    const fetchCities = async () => {
+      setIsCitiesLoading(true)
+      setCitiesError("")
+
+      try {
+        const data = await fetchJson<BrazilCity[]>(
+          `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${values.state}/municipios`,
+          controller.signal,
+        ).catch(async () => {
+          const fallbackCities = await fetchJson<Array<{ codigo_ibge: string; nome: string }>>(
+            `https://brasilapi.com.br/api/ibge/municipios/v1/${values.state}`,
+            controller.signal,
+          )
+
+          return fallbackCities.map((city) => ({ id: Number(city.codigo_ibge), nome: city.nome }))
+        })
+        setCities(
+          data
+            .map((city) => ({ id: city.id, nome: city.nome }))
+            .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+        )
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return
+        setCities([])
+        setCitiesError("Nao foi possivel carregar as cidades. Tente novamente.")
+      } finally {
+        if (!controller.signal.aborted) setIsCitiesLoading(false)
+      }
+    }
+
+    fetchCities()
+
+    return () => controller.abort()
+  }, [values.state])
 
   useEffect(() => {
     if (modalRef.current) modalRef.current.scrollTop = 0
@@ -343,18 +455,23 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
             <select
               value={values.state}
               onChange={(event) => {
-                updateValue("state", event.target.value)
-                updateValue("city", "")
+                const nextState = event.target.value
+                setValues((current) => ({ ...current, state: nextState, city: "" }))
+                setErrors((current) => ({ ...current, state: undefined, city: undefined }))
               }}
+              disabled={isStatesLoading}
             >
-              <option value="">Selecione o estado</option>
-              {states.map((state) => (
-                <option key={state.value} value={state.value}>
-                  {state.label}
+              <option value="">
+                {isStatesLoading ? "Carregando estados..." : statesError ? "Estados indisponiveis" : "Selecione o estado"}
+              </option>
+              {brazilStates.map((state) => (
+                <option key={state.id} value={state.sigla}>
+                  {state.nome} ({state.sigla})
                 </option>
               ))}
             </select>
             {renderFieldError("state")}
+            {statesError && <span className="registration-field__hint">{statesError}</span>}
           </label>
 
           <label className="registration-field registration-field--select">
@@ -362,16 +479,25 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
             <select
               value={values.city}
               onChange={(event) => updateValue("city", event.target.value)}
-              disabled={!values.state}
+              disabled={!values.state || isCitiesLoading || Boolean(citiesError)}
             >
-              <option value="">{values.state ? "Selecione a cidade" : "Selecione o estado primeiro"}</option>
-              {availableCities.map((city) => (
-                <option key={city} value={city}>
-                  {city}
+              <option value="">
+                {!values.state
+                  ? "Selecione o estado primeiro"
+                  : isCitiesLoading
+                    ? "Carregando cidades..."
+                    : citiesError
+                      ? "Cidades indisponiveis"
+                      : "Selecione a cidade"}
+              </option>
+              {cities.map((city) => (
+                <option key={city.id} value={city.nome}>
+                  {city.nome}
                 </option>
               ))}
             </select>
             {renderFieldError("city")}
+            {citiesError && <span className="registration-field__hint">{citiesError}</span>}
           </label>
         </div>
       )
@@ -455,9 +581,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
             setIsObservationOpen(true)
           }}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 20h16M5 16.5V19h2.5L18.3 8.2 15.8 5.7 5 16.5Zm11.2-12.2 2.5 2.5" />
-          </svg>
+          <img src="/icons/registration/anotacao.svg" alt="" aria-hidden="true" />
           {observation ? "Editar observação para a equipe" : "Adicionar observação para a equipe"}
         </button>
 
@@ -588,7 +712,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
             <AnimatePresence>
               {isObservationOpen && (
                 <motion.div
-                  className="registration-observation-modal"
+                  className="registration-observation-layer"
                   role="dialog"
                   aria-modal="true"
                   aria-labelledby="observation-title"
@@ -597,6 +721,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
                   exit={{ opacity: 0, scale: 0.96, y: 10 }}
                   transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                 >
+                  <div className="registration-observation-modal">
                   <button className="registration-observation-modal__close" type="button" onClick={closeObservation} aria-label="Fechar observações">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="m6 6 12 12M18 6 6 18" />
@@ -612,6 +737,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
                   <button className="registration-observation-modal__confirm" type="button" onClick={saveObservation} aria-label="Salvar observações">
                     <ArrowIcon pulseKey={arrowPulse} />
                   </button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -701,11 +827,17 @@ function SuccessScreen({
       <div className="registration-success__next">
         <h3>Próximos passos</h3>
         <div className="registration-success__cards">
-          {successSteps.map((step) => (
+          {successSteps.map((step, index) => (
             <article className="registration-success__card" key={step.title}>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                {step.icon}
-              </svg>
+              <img
+                src={[
+                  "/icons/registration/analise-cadastro.svg",
+                  "/icons/registration/whatsapp.svg",
+                  "/icons/registration/avanco-parceria.svg",
+                ][index]}
+                alt=""
+                aria-hidden="true"
+              />
               <div>
                 <h4>{step.title}</h4>
                 <p>{step.description}</p>
