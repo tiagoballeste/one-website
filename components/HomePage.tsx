@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react"
 import { ForWhomSection } from "@/components/ForWhomSection"
 import { Hero } from "@/components/Hero"
+import { HowItWorksSection } from "@/components/HowItWorksSection"
 import { LogoPreloader } from "@/components/LogoPreloader"
 import { PositioningSection } from "@/components/PositioningSection"
 import { RegistrationModal } from "@/components/RegistrationModal"
@@ -29,6 +30,7 @@ export function HomePage() {
         <Hero onOpenRegistration={openRegistration} />
         <PositioningSection />
         <ForWhomSection />
+        <HowItWorksSection />
       </main>
       <RegistrationModal isOpen={isRegistrationOpen} onClose={closeRegistration} />
     </>
