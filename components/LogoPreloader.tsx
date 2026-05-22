@@ -6,9 +6,6 @@ import Grainient from "./Grainient"
 
 const VIEW_BOX_WIDTH = 399.72
 const VIEW_BOX_HEIGHT = 416.9
-const MASK_OVERSHOOT_FACTOR = 9.5
-const SCALE_DURATION = 0.8
-const SCALE_EASE = "sine.inOut"
 
 const GRAINIENT_PROPS = {
   color1: "#0a1e66",
@@ -67,9 +64,8 @@ export function LogoPreloader() {
     const revealSvg = revealSvgRef.current
     const solid = solidRef.current
     const fillRect = fillRectRef.current
-    const maskLogo = maskLogoRef.current
 
-    if (!root || !mark || !revealSvg || !solid || !fillRect || !maskLogo) {
+    if (!root || !mark || !revealSvg || !solid || !fillRect) {
       return
     }
 
@@ -85,37 +81,6 @@ export function LogoPreloader() {
     window.addEventListener("resize", updateViewport)
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    const getLogoWidth = () =>
-      measuredViewport.width <= 760
-        ? Math.min(measuredViewport.width * 0.46, 150)
-        : Math.min(measuredViewport.width * 0.44, 190)
-
-    const setMaskTransform = (scale = 1) => {
-      const logoWidth = getLogoWidth()
-      const logoHeight = logoWidth * (VIEW_BOX_HEIGHT / VIEW_BOX_WIDTH)
-      const x = measuredViewport.width / 2 - logoWidth / 2
-      const y = measuredViewport.height / 2 - logoHeight / 2
-      const baseScale = logoWidth / VIEW_BOX_WIDTH
-      const originX = x + logoWidth / 2
-      const originY = y + logoHeight / 2
-
-      maskLogo.setAttribute(
-        "transform",
-        `translate(${originX} ${originY}) scale(${baseScale * scale}) translate(${-VIEW_BOX_WIDTH / 2} ${-VIEW_BOX_HEIGHT / 2})`,
-      )
-    }
-    const getLogoOpacity = (progress: number, fadeEndProgress: number) => {
-      if (progress <= 0) {
-        return 1
-      }
-
-      if (progress >= fadeEndProgress) {
-        return 0
-      }
-
-      return 1 - progress / fadeEndProgress
-    }
-    setMaskTransform(1)
 
     if (reduceMotion) {
       gsap.set(fillRect, { attr: { y: 0, height: VIEW_BOX_HEIGHT } })
@@ -133,38 +98,10 @@ export function LogoPreloader() {
       }
     }
 
-    const logoWidth = getLogoWidth()
-    const logoHeight = logoWidth * (VIEW_BOX_HEIGHT / VIEW_BOX_WIDTH)
-    const finalScale =
-      (Math.hypot(measuredViewport.width, measuredViewport.height) /
-        Math.max(Math.min(logoWidth, logoHeight), 1)) *
-      MASK_OVERSHOOT_FACTOR
-    const logoScreenFillScale = finalScale / MASK_OVERSHOOT_FACTOR
-    const scaleEase = gsap.parseEase(SCALE_EASE)
-    const logoFadeEndProgress = (() => {
-      const targetEaseProgress = Math.min(
-        Math.max((logoScreenFillScale - 1) / Math.max(finalScale - 1, 1), 0),
-        1,
-      )
-      let low = 0
-      let high = 1
-
-      for (let i = 0; i < 20; i += 1) {
-        const mid = (low + high) / 2
-
-        if (scaleEase(mid) < targetEaseProgress) {
-          low = mid
-        } else {
-          high = mid
-        }
-      }
-
-      return high
-    })()
-
     gsap.set(fillRect, { attr: { y: VIEW_BOX_HEIGHT, height: 0 } })
     gsap.set(revealSvg, { opacity: 0 })
-    gsap.set(root, { opacity: 1, pointerEvents: "auto" })
+    gsap.set(root, { opacity: 1, pointerEvents: "auto", visibility: "visible" })
+    gsap.set(solid, { opacity: 1 })
     gsap.set(mark, { opacity: 1, scale: 1, transformOrigin: "50% 50%" })
 
     const timeline = gsap.timeline({
@@ -180,34 +117,13 @@ export function LogoPreloader() {
         ease: "power2.inOut",
       })
       .to({}, { duration: 0.2 })
-      .set(revealSvg, { opacity: 1 })
-      .set(solid, { opacity: 0 })
-      .set(mark, { opacity: 1, visibility: "visible", pointerEvents: "none" })
-      .to(
-        { scale: 1 },
-        {
-          scale: finalScale,
-          duration: SCALE_DURATION,
-          ease: SCALE_EASE,
-          onUpdate() {
-            const currentScale = this.targets()[0].scale
-            const linearProgress = this.progress()
-
-            setMaskTransform(currentScale)
-            gsap.set(mark, {
-              opacity: getLogoOpacity(linearProgress, logoFadeEndProgress),
-              scale: currentScale,
-            })
-          },
-        },
-      )
-      .set(mark, { opacity: 0, visibility: "hidden" })
       .to(root, {
         opacity: 0,
-        duration: 0.35,
+        duration: 0.65,
         ease: "power2.out",
         pointerEvents: "none",
-      }, "<0.56")
+      })
+      .set(root, { visibility: "hidden" })
 
     return () => {
       window.removeEventListener("resize", updateViewport)
