@@ -12,6 +12,7 @@ import { SmoothScroll } from "@/components/SmoothScroll"
 
 export function HomePage() {
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false)
+  const [isHeroReady, setIsHeroReady] = useState(false)
 
   const openRegistration = useCallback(() => {
     setIsRegistrationOpen(true)
@@ -21,16 +22,20 @@ export function HomePage() {
     setIsRegistrationOpen(false)
   }, [])
 
+  const completeLoader = useCallback(() => {
+    setIsHeroReady(true)
+  }, [])
+
   return (
     <>
       <SmoothScroll />
-      <LogoPreloader />
+      <LogoPreloader onComplete={completeLoader} />
       <SiteHeader onOpenRegistration={openRegistration} />
       <main>
-        <Hero onOpenRegistration={openRegistration} />
+        <Hero isReady={isHeroReady} onOpenRegistration={openRegistration} />
         <PositioningSection />
-        <ForWhomSection />
         <HowItWorksSection />
+        <ForWhomSection />
       </main>
       <RegistrationModal isOpen={isRegistrationOpen} onClose={closeRegistration} />
     </>

@@ -1,52 +1,39 @@
 "use client"
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react"
-import { useEffect, useRef, useState, type PointerEvent } from "react"
+import { useEffect, useRef } from "react"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { useReducedMotion } from "motion/react"
 
 gsap.registerPlugin(ScrollTrigger)
 
-const carouselImages = [
-  {
-    src: "/media/for-whom/escritorio.png",
-    alt: "Equipe imobiliária reunida em escritório",
-  },
-  {
-    src: "/media/for-whom/comercial-abrindo-negocio.png",
-    alt: "Profissionais em frente a imóvel comercial",
-  },
-  {
-    src: "/media/for-whom/logistico-industrial.png",
-    alt: "Profissionais em operação logística",
-  },
-  {
-    src: "/media/for-whom/residencial-familia-em-casa.png",
-    alt: "Família em casa analisando informações de locação",
-  },
-]
-
-const audienceItems = [
+const personaCards = [
   {
     title: "Inquilinos",
-    description: "Alugue sem fiador ou caução, conforme análise da proposta.",
-    icon: "/icons/for-whom/inquilinos.svg",
+    subtitle: "Alugue sem fiador",
+    image: "/images/for-whom-cards/inquilinos.png",
   },
   {
     title: "Proprietários",
-    description: "Mais proteção para quem coloca seu imóvel para alugar.",
-    icon: "/icons/for-whom/proprietarios.svg",
+    subtitle: "Receba sempre em dia",
+    image: "/images/for-whom-cards/proprietarios.png",
   },
   {
     title: "Imobiliárias e corretores",
-    description: "Mais contratos fechados, menos burocracia na operação.",
-    icon: "/icons/for-whom/imobiliarias-corretores.svg",
+    subtitle: "Feche mais contratos",
+    image: "/images/for-whom-cards/imobiliarias-corretores.png",
   },
   {
     title: "Empresas e operações logísticas",
-    description: "Mais agilidade para imóveis comerciais, empresariais e logísticos.",
-    icon: "/icons/for-whom/empresas-logisticas.svg",
+    subtitle: "Garantia para grandes operações",
+    image: "/images/for-whom-cards/empresas-operacoes-logisticas.png",
   },
+]
+
+const benefitBullets = [
+  "Reduz barreira no fechamento",
+  "Melhora a experiência do cliente",
+  "Acelera o giro de carteira das locações",
 ]
 
 function ArrowIcon() {
@@ -57,133 +44,85 @@ function ArrowIcon() {
   )
 }
 
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="m8.3 13.4-3-3 1.2-1.2 1.8 1.8 5.2-5.2 1.2 1.2-6.4 6.4Z" />
+    </svg>
+  )
+}
+
 export function ForWhomSection() {
-  const reduceMotion = useReducedMotion()
   const sectionRef = useRef<HTMLElement | null>(null)
-  const carouselRef = useRef<HTMLDivElement | null>(null)
-  const contentRef = useRef<HTMLDivElement | null>(null)
-  const pointerStartX = useRef<number | null>(null)
-  const [activeImage, setActiveImage] = useState(0)
-  const [direction, setDirection] = useState(1)
-
-  const goToImage = (nextIndex: number, nextDirection: number) => {
-    setDirection(nextDirection)
-    setActiveImage((nextIndex + carouselImages.length) % carouselImages.length)
-  }
-
-  const showNextImage = () => goToImage(activeImage + 1, 1)
-  const showPreviousImage = () => goToImage(activeImage - 1, -1)
-
-  useEffect(() => {
-    if (reduceMotion) return
-
-    const interval = window.setInterval(() => {
-      setDirection(1)
-      setActiveImage((current) => (current + 1) % carouselImages.length)
-    }, 3000)
-
-    return () => window.clearInterval(interval)
-  }, [reduceMotion])
+  const reduceMotion = useReducedMotion()
 
   useEffect(() => {
     const section = sectionRef.current
-    const carousel = carouselRef.current
-    const content = contentRef.current
-
-    if (!section || !carousel || !content) return
+    if (!section) return
 
     const ctx = gsap.context(() => {
-      const blocks = gsap.utils.toArray<HTMLElement>(".for-whom-reveal-block")
+      const revealBlocks = gsap.utils.toArray<HTMLElement>(".for-whom-reveal")
+      const cards = gsap.utils.toArray<HTMLElement>(".for-whom-card")
 
       if (reduceMotion) {
-        gsap.set(blocks, {
+        gsap.set([...revealBlocks, ...cards], {
           autoAlpha: 1,
           y: 0,
+          scale: 1,
           filter: "blur(0px)",
         })
         return
       }
 
-      blocks.forEach((block) => {
+      revealBlocks.forEach((block) => {
         gsap.fromTo(
           block,
           {
             autoAlpha: 0,
             y: 32,
-            filter: "blur(6px)",
           },
           {
             autoAlpha: 1,
             y: 0,
-            filter: "blur(0px)",
-            duration: 0.8,
+            duration: 0.75,
             ease: "power3.out",
             scrollTrigger: {
               trigger: block,
-              start: "top 85%",
-              end: "top 65%",
+              start: "top 86%",
               toggleActions: "play none none reverse",
             },
           },
         )
       })
 
-      const mm = gsap.matchMedia()
-
-      mm.add("(min-width: 761px)", () => {
-        const getPinDistance = () => Math.max(0, content.offsetHeight - carousel.offsetHeight)
-
-        if (getPinDistance() < 80) return
-
-        ScrollTrigger.create({
-          trigger: carousel,
-          start: "top top+=88",
-          end: () => `+=${getPinDistance()}`,
-          pin: carousel,
-          pinSpacing: false,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-        })
-
-        const refresh = () => ScrollTrigger.refresh()
-        const images = Array.from(section.querySelectorAll("img"))
-
-        images.forEach((image) => {
-          if (!image.complete) {
-            image.addEventListener("load", refresh, { once: true })
-          }
-        })
-
-        requestAnimationFrame(refresh)
-
-        return () => {
-          images.forEach((image) => image.removeEventListener("load", refresh))
-        }
+      cards.forEach((card) => {
+        gsap.fromTo(
+          card,
+          {
+            autoAlpha: 0,
+            scale: 0.8,
+            filter: "blur(10px)",
+          },
+          {
+            autoAlpha: 1,
+            scale: 1,
+            filter: "blur(0px)",
+            duration: 0.62,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: card,
+              start: "top 88%",
+              toggleActions: "play none none reverse",
+            },
+          },
+        )
       })
 
-      return () => mm.revert()
+      requestAnimationFrame(() => ScrollTrigger.refresh())
     }, section)
 
     return () => ctx.revert()
   }, [reduceMotion])
-
-  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    pointerStartX.current = event.clientX
-  }
-
-  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
-    if (pointerStartX.current === null) return
-
-    const distance = event.clientX - pointerStartX.current
-    pointerStartX.current = null
-
-    if (Math.abs(distance) < 48) return
-    if (distance > 0) {
-      showPreviousImage()
-    } else {
-      showNextImage()
-    }
-  }
 
   const scrollToHowItWorks = () => {
     const target = document.querySelector("#como-funciona")
@@ -195,103 +134,54 @@ export function ForWhomSection() {
   return (
     <section ref={sectionRef} className="for-whom-section" id="para-quem" aria-label="Para quem é a fiança locatícia ONE">
       <div className="for-whom-section__inner">
-        <div ref={carouselRef} className="for-whom-carousel">
-          <div
-            className="for-whom-carousel__viewport"
-            onPointerDown={handlePointerDown}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={() => {
-              pointerStartX.current = null
-            }}
-          >
-            <AnimatePresence initial={false} custom={direction} mode="popLayout">
-              <motion.img
-                key={carouselImages[activeImage].src}
-                src={carouselImages[activeImage].src}
-                alt={carouselImages[activeImage].alt}
-                draggable={false}
-                custom={direction}
-                initial={reduceMotion ? false : { opacity: 0, x: direction * 34, scale: 1.015 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={reduceMotion ? undefined : { opacity: 0, x: direction * -34, scale: 0.992 }}
-                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              />
-            </AnimatePresence>
-
-            <button
-              className="for-whom-carousel__button for-whom-carousel__button--previous"
-              type="button"
-              aria-label="Imagem anterior"
-              onClick={showPreviousImage}
-            >
-              <ArrowIcon />
-            </button>
-            <button
-              className="for-whom-carousel__button for-whom-carousel__button--next"
-              type="button"
-              aria-label="Próxima imagem"
-              onClick={showNextImage}
-            >
-              <ArrowIcon />
-            </button>
-          </div>
-        </div>
-
-        <div ref={contentRef} className="for-whom-section__content">
-          <span className="for-whom-section__tag for-whom-reveal-block">Para quem é?</span>
-
-          <h2 className="for-whom-section__headline for-whom-reveal-block">
+        <header className="for-whom-section__intro">
+          <span className="for-whom-section__pill for-whom-reveal">Para quem é?</span>
+          <h2 className="for-whom-section__headline for-whom-reveal">
             <span>Uma solução para</span>
-            <span>todos os lados da locação</span>
+            <span>
+              <strong>todos os lados</strong> da locação
+            </span>
           </h2>
-
-          <p className="for-whom-section__copy for-whom-reveal-block">
+          <p className="for-whom-section__copy for-whom-reveal">
             A ONE Fiança Locatícia atende diferentes perfis do mercado imobiliário, criando uma ponte mais segura e
             eficiente entre quem quer alugar, quem administra o imóvel, quem é proprietário e quem precisa viabilizar
             espaços comerciais, empresariais ou logísticos.
           </p>
+        </header>
 
-          <div className="for-whom-audience">
-            {audienceItems.map((item) => (
-              <article className="for-whom-audience__item for-whom-reveal-block" key={item.title}>
-                <img src={item.icon} alt="" aria-hidden="true" />
-                <div>
-                  <h3>{item.title}</h3>
-                  <p>{item.description}</p>
-                </div>
-              </article>
-            ))}
+        <div className="for-whom-cards" aria-label="Perfis atendidos pela ONE">
+          {personaCards.map((card) => (
+            <article className="for-whom-card" key={card.title}>
+              <img className="for-whom-card__image" src={card.image} alt="" aria-hidden="true" loading="lazy" />
+              <div className="for-whom-card__content">
+                <h3>{card.title}</h3>
+                <p>{card.subtitle}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="for-whom-section__footer">
+          <div className="for-whom-benefit for-whom-reveal">
+            <h3>Menos burocracia, mais contratos fechados</h3>
+            <ul>
+              {benefitBullets.map((bullet) => (
+                <li key={bullet}>
+                  <span className="for-whom-benefit__check">
+                    <CheckIcon />
+                  </span>
+                  {bullet}
+                </li>
+              ))}
+            </ul>
           </div>
 
-          <div className="for-whom-benefit for-whom-reveal-block">
-            <div className="for-whom-benefit__icon" aria-hidden="true">
-              <img src="/icons/for-whom/menos-burocracia.svg" alt="" />
-            </div>
-            <div className="for-whom-benefit__content">
-              <h3>Menos burocracia, mais contratos fechados</h3>
-              <ul>
-                <li>
-                  <img src="/icons/for-whom/check.svg" alt="" aria-hidden="true" />
-                  Reduz barreira no fechamento
-                </li>
-                <li>
-                  <img src="/icons/for-whom/check.svg" alt="" aria-hidden="true" />
-                  Melhora a experiência do cliente
-                </li>
-                <li>
-                  <img src="/icons/for-whom/check.svg" alt="" aria-hidden="true" />
-                  Acelera o giro de carteira das locações
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="for-whom-section__actions for-whom-reveal-block">
+          <div className="for-whom-section__actions for-whom-reveal">
             <a
               className="for-whom-cta for-whom-cta--primary"
               href="https://wa.me/5511970309686"
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
             >
               Fale com um especialista
               <ArrowIcon />

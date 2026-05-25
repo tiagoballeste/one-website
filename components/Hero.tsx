@@ -1,36 +1,88 @@
+"use client"
+
+import { useEffect, useRef } from "react"
+import { gsap } from "gsap"
+
 type HeroProps = {
+  isReady: boolean
   onOpenRegistration: () => void
 }
 
-export function Hero({ onOpenRegistration }: HeroProps) {
+export function Hero({ isReady, onOpenRegistration }: HeroProps) {
+  const heroRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    const hero = heroRef.current
+    if (!hero) return
+
+    const revealItems = gsap.utils.toArray<HTMLElement>(".hero-reveal", hero)
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+    if (reduceMotion) {
+      gsap.set(revealItems, { opacity: 1, y: 0 })
+      return
+    }
+
+    if (!isReady) {
+      gsap.set(revealItems, { opacity: 0, y: 32 })
+      return
+    }
+
+    const ctx = gsap.context(() => {
+      gsap.to(revealItems, {
+        opacity: 1,
+        y: 0,
+        duration: 0.75,
+        ease: "power3.out",
+        stagger: 0.12,
+      })
+
+      gsap.to(".hero-more__chevron", {
+        y: 7,
+        opacity: 1,
+        duration: 0.95,
+        ease: "power1.inOut",
+        stagger: 0.14,
+        repeat: -1,
+        yoyo: true,
+      })
+    }, hero)
+
+    return () => ctx.revert()
+  }, [isReady])
+
+  const scrollToNextSection = () => {
+    document.getElementById("sobre")?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
   return (
     <>
-      <section className="hero" id="inicio" aria-label="ONE Fiança Locatícia">
+      <section ref={heroRef} className="hero" id="inicio" aria-label="ONE Fiança Locatícia">
         <video
           className="hero__video"
-          src="/media/background-one-site-hero.mp4"
+          src="/media/one-background-video.mp4"
           autoPlay
           muted
           loop
           playsInline
+          preload="auto"
           aria-hidden="true"
         />
 
         <div className="hero__content">
-          <h1>
+          <h1 className="hero-reveal">
             <span>Fiança Locatícia</span>
             <span>
               rápida e <strong>sem burocracia</strong>
             </span>
           </h1>
 
-          <p className="hero__copy">
-            A ONE Fiança Locatícia oferece uma solução prática para substituir o fiador tradicional e
-            reduzir a necessidade de caução, ajudando você a avançar no contrato de aluguel com mais
-            tranquilidade.
+          <p className="hero__copy hero-reveal">
+            Alternativa moderna ao fiador tradicional e à caução. Avance no contrato de aluguel com
+            mais agilidade.
           </p>
 
-          <div className="hero__actions" aria-label="Ações principais">
+          <div className="hero__actions hero-reveal" aria-label="Ações principais">
             <button className="button button--primary" type="button" onClick={onOpenRegistration}>
               Cadastrar minha imobiliária
             </button>
@@ -39,6 +91,18 @@ export function Hero({ onOpenRegistration }: HeroProps) {
             </button>
           </div>
         </div>
+
+        <button className="hero-more hero-reveal" type="button" onClick={scrollToNextSection}>
+          <span>Saiba mais</span>
+          <span className="hero-more__chevrons" aria-hidden="true">
+            <svg className="hero-more__chevron" viewBox="0 0 24 24">
+              <path d="M12 15.4 5.3 8.7l1.4-1.4 5.3 5.3 5.3-5.3 1.4 1.4L12 15.4Z" />
+            </svg>
+            <svg className="hero-more__chevron" viewBox="0 0 24 24">
+              <path d="M12 15.4 5.3 8.7l1.4-1.4 5.3 5.3 5.3-5.3 1.4 1.4L12 15.4Z" />
+            </svg>
+          </span>
+        </button>
       </section>
 
       <a

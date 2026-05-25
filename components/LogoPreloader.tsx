@@ -6,6 +6,8 @@ import Grainient from "./Grainient"
 
 const VIEW_BOX_WIDTH = 399.72
 const VIEW_BOX_HEIGHT = 416.9
+const GRADIENT_SOURCE_VIEW_BOX_WIDTH = 352.58
+const GRADIENT_SOURCE_VIEW_BOX_HEIGHT = 367.73
 
 const GRAINIENT_PROPS = {
   color1: "#0a1e66",
@@ -43,10 +45,19 @@ type Viewport = {
   height: number
 }
 
-export function LogoPreloader() {
+type LogoPreloaderProps = {
+  onComplete?: () => void
+}
+
+export function LogoPreloader({ onComplete }: LogoPreloaderProps) {
   const reactId = useId().replace(/:/g, "")
   const clipId = `one-fill-clip-${reactId}`
   const maskId = `one-reveal-mask-${reactId}`
+  const outerGradientId = `one-shield-gradient-outer-${reactId}`
+  const innerGradientId = `one-shield-gradient-inner-${reactId}`
+  const monogramGradientId = `one-shield-gradient-monogram-${reactId}`
+  const fillGradientIds = [outerGradientId, innerGradientId, monogramGradientId]
+  const gradientTransform = `scale(${VIEW_BOX_WIDTH / GRADIENT_SOURCE_VIEW_BOX_WIDTH} ${VIEW_BOX_HEIGHT / GRADIENT_SOURCE_VIEW_BOX_HEIGHT})`
 
   const rootRef = useRef<HTMLDivElement>(null)
   const markRef = useRef<HTMLDivElement>(null)
@@ -89,7 +100,10 @@ export function LogoPreloader() {
         duration: 0.45,
         ease: "power2.out",
         delay: 0.2,
-        onComplete: () => setIsMounted(false),
+        onComplete: () => {
+          setIsMounted(false)
+          onComplete?.()
+        },
       })
 
       return () => {
@@ -106,7 +120,10 @@ export function LogoPreloader() {
 
     const timeline = gsap.timeline({
       defaults: { overwrite: "auto" },
-      onComplete: () => setIsMounted(false),
+      onComplete: () => {
+        setIsMounted(false)
+        onComplete?.()
+      },
     })
     animationRef.current = timeline
 
@@ -129,7 +146,7 @@ export function LogoPreloader() {
       window.removeEventListener("resize", updateViewport)
       animationRef.current?.kill()
     }
-  }, [])
+  }, [onComplete])
 
   if (!isMounted) {
     return null
@@ -174,13 +191,110 @@ export function LogoPreloader() {
         >
           <defs>
             {/* Paths are extracted from public/ONE_SHIELD.svg so the loader uses the final shield geometry. */}
+            {/* Gradients are extracted from the uploaded colored ONE shield SVG and scaled to this loader viewBox. */}
+            <linearGradient
+              id={outerGradientId}
+              x1="176.29"
+              y1="0"
+              x2="176.29"
+              y2="367.73"
+              gradientUnits="userSpaceOnUse"
+              gradientTransform={gradientTransform}
+            >
+              <stop offset="0" stopColor="#eff023" />
+              <stop offset=".21" stopColor="#ffce20" />
+              <stop offset=".38" stopColor="#fafbe0" />
+              <stop offset=".39" stopColor="#f6eac2" />
+              <stop offset=".41" stopColor="#f2d49b" />
+              <stop offset=".42" stopColor="#efc17a" />
+              <stop offset=".44" stopColor="#ecb25e" />
+              <stop offset=".46" stopColor="#e9a649" />
+              <stop offset=".48" stopColor="#e89e3a" />
+              <stop offset=".51" stopColor="#e79931" />
+              <stop offset=".54" stopColor="#e7982f" />
+              <stop offset=".56" stopColor="#e79b35" />
+              <stop offset=".58" stopColor="#eaa548" />
+              <stop offset=".61" stopColor="#edb567" />
+              <stop offset=".65" stopColor="#f2cb92" />
+              <stop offset=".68" stopColor="#f9e7c9" />
+              <stop offset=".7" stopColor="#fefbef" />
+              <stop offset=".7" stopColor="#f8f5ea" />
+              <stop offset=".71" stopColor="#d3d1cb" />
+              <stop offset=".72" stopColor="#b3b1af" />
+              <stop offset=".73" stopColor="#989798" />
+              <stop offset=".74" stopColor="#828185" />
+              <stop offset=".75" stopColor="#717177" />
+              <stop offset=".77" stopColor="#65656d" />
+              <stop offset=".79" stopColor="#5e5e67" />
+              <stop offset=".85" stopColor="#5d5d66" />
+              <stop offset=".93" stopColor="#ebe8e8" />
+            </linearGradient>
+            <linearGradient
+              id={innerGradientId}
+              x1="176.18"
+              y1="40.27"
+              x2="176.18"
+              y2="333.82"
+              gradientUnits="userSpaceOnUse"
+              gradientTransform={gradientTransform}
+            >
+              <stop offset="0" stopColor="#a6b0bb" />
+              <stop offset=".28" stopColor="#e8e9ed" />
+              <stop offset=".46" stopColor="#5d5d66" />
+              <stop offset=".53" stopColor="#73727a" />
+              <stop offset=".67" stopColor="#acaaae" />
+              <stop offset=".81" stopColor="#ebe8e8" />
+            </linearGradient>
+            <linearGradient
+              id={monogramGradientId}
+              x1="131.6"
+              y1="98.54"
+              x2="217.6"
+              y2="282.98"
+              gradientUnits="userSpaceOnUse"
+              gradientTransform={gradientTransform}
+            >
+              <stop offset="0" stopColor="#eff023" />
+              <stop offset=".01" stopColor="#f3e522" />
+              <stop offset=".03" stopColor="#fcd420" />
+              <stop offset=".05" stopColor="#ffce20" />
+              <stop offset=".07" stopColor="#fed53e" />
+              <stop offset=".12" stopColor="#fce583" />
+              <stop offset=".16" stopColor="#fbf1b5" />
+              <stop offset=".18" stopColor="#faf8d4" />
+              <stop offset=".2" stopColor="#fafbe0" />
+              <stop offset=".21" stopColor="#f8f2d1" />
+              <stop offset=".24" stopColor="#f3d7a0" />
+              <stop offset=".28" stopColor="#eec077" />
+              <stop offset=".31" stopColor="#ebae57" />
+              <stop offset=".34" stopColor="#e8a241" />
+              <stop offset=".37" stopColor="#e79a33" />
+              <stop offset=".39" stopColor="#e7982f" />
+              <stop offset=".41" stopColor="#ecb160" />
+              <stop offset=".43" stopColor="#f2c78b" />
+              <stop offset=".45" stopColor="#f6daaf" />
+              <stop offset=".47" stopColor="#f9e8cb" />
+              <stop offset=".49" stopColor="#fcf2df" />
+              <stop offset=".51" stopColor="#fdf8eb" />
+              <stop offset=".53" stopColor="#fefbef" />
+              <stop offset=".58" stopColor="#ceccc6" />
+              <stop offset=".63" stopColor="#9d9c9d" />
+              <stop offset=".67" stopColor="#7a797f" />
+              <stop offset=".71" stopColor="#64646c" />
+              <stop offset=".74" stopColor="#5d5d66" />
+              <stop offset=".76" stopColor="#7f7e85" />
+              <stop offset=".8" stopColor="#adabaf" />
+              <stop offset=".84" stopColor="#cfccce" />
+              <stop offset=".86" stopColor="#e3e0e1" />
+              <stop offset=".88" stopColor="#ebe8e8" />
+            </linearGradient>
             <clipPath id={clipId}>
               <rect ref={fillRectRef} x="0" y={VIEW_BOX_HEIGHT} width={VIEW_BOX_WIDTH} height="0" />
             </clipPath>
           </defs>
           <g className="logo-preloader__fill" clipPath={`url(#${clipId})`}>
-            {SHIELD_PATHS.map((path) => (
-              <path key={`fill-${path.slice(0, 28)}`} d={path} />
+            {SHIELD_PATHS.map((path, index) => (
+              <path key={`fill-${path.slice(0, 28)}`} d={path} fill={`url(#${fillGradientIds[index]})`} />
             ))}
           </g>
           <g className="logo-preloader__stroke">
