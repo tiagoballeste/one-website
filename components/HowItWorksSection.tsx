@@ -69,30 +69,302 @@ export function HowItWorksSection() {
 
     if (!section || !path) return
 
+    let pathMatchMedia: ReturnType<typeof gsap.matchMedia> | null = null
+
     const ctx = gsap.context(() => {
       const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
       const revealBlocks = gsap.utils.toArray<HTMLElement>(".how-it-works-reveal")
-      const pathLength = path.getTotalLength()
+      const stepBlocks = gsap.utils.toArray<HTMLElement>(".how-it-works-step")
+      const nonStepRevealBlocks = revealBlocks.filter((block) => !block.classList.contains("how-it-works-step"))
+      const stepMarkers = stepBlocks
+        .map((step) => step.querySelector<HTMLElement>(".how-it-works-step__marker"))
+        .filter((marker): marker is HTMLElement => Boolean(marker))
+      let pathLength = path.getTotalLength()
+      let renderedPathPoints: Array<{ x: number; y: number; progress: number }> = []
 
-      gsap.set(path, {
-        strokeDasharray: pathLength,
-        strokeDashoffset: reduceMotion ? 0 : pathLength,
-      })
+      const getRenderedPathMetrics = () => {
+        const svg = path.ownerSVGElement
+        const viewBox = svg?.viewBox.baseVal
+        const rawLength = path.getTotalLength()
+
+        if (!svg || !viewBox || viewBox.width === 0 || viewBox.height === 0) {
+          return { length: rawLength, points: [] }
+        }
+
+        const scaleX = svg.clientWidth / viewBox.width
+        const scaleY = svg.clientHeight / viewBox.height
+
+        if (!Number.isFinite(scaleX) || !Number.isFinite(scaleY) || scaleX === 0 || scaleY === 0) {
+          return { length: rawLength, points: [] }
+        }
+
+        let renderedLength = 0
+        let previousPoint = path.getPointAtLength(0)
+        const samples = 220
+        const points = [{ x: previousPoint.x * scaleX, y: previousPoint.y * scaleY, distance: 0, progress: 0 }]
+
+        for (let index = 1; index <= samples; index += 1) {
+          const point = path.getPointAtLength((rawLength * index) / samples)
+          const x = point.x * scaleX
+          const y = point.y * scaleY
+          renderedLength += Math.hypot(x - previousPoint.x * scaleX, y - previousPoint.y * scaleY)
+          points.push({ x, y, distance: renderedLength, progress: 0 })
+          previousPoint = point
+        }
+
+        const length = renderedLength || rawLength
+        return {
+          length,
+          points: points.map((point) => ({
+            x: point.x,
+            y: point.y,
+            progress: point.distance / length,
+          })),
+        }
+      }
+
+      const setPathDashMetrics = () => {
+        const metrics = getRenderedPathMetrics()
+        pathLength = metrics.length
+        renderedPathPoints = metrics.points
+        gsap.set(path, {
+          strokeDasharray: pathLength,
+          strokeDashoffset: reduceMotion ? 0 : pathLength,
+        })
+      }
+
+      setPathDashMetrics()
 
       if (!reduceMotion) {
-        gsap.to(path, {
-          strokeDashoffset: 0,
-          ease: "none",
-          scrollTrigger: {
-            trigger: ".how-it-works__journey",
-            start: "top 78%",
-            end: "bottom 42%",
-            scrub: 0.7,
+        const matchMedia = gsap.matchMedia()
+        pathMatchMedia = matchMedia
+        const journey = section.querySelector<HTMLElement>(".how-it-works__journey")
+        const clamp = (value: number) => Math.min(1, Math.max(0, value))
+        const getLayoutTop = (element: HTMLElement) => {
+          let top = 0
+          let current: HTMLElement | null = element
+
+          while (current) {
+            top += current.offsetTop
+            current = current.offsetParent as HTMLElement | null
+          }
+
+          return top
+        }
+        const getLayoutLeft = (element: HTMLElement) => {
+          let left = 0
+          let current: HTMLElement | null = element
+
+          while (current) {
+            left += current.offsetLeft
+            current = current.offsetParent as HTMLElement | null
+          }
+
+          return left
+        }
+        const getPathProgressAtMarker = (marker: HTMLElement) => {
+          const svg = path.ownerSVGElement
+
+          if (!svg || renderedPathPoints.length === 0) {
+            return 0
+          }
+
+          const svgRect = svg.getBoundingClientRect()
+          const svgLeft = svgRect.left + window.scrollX
+          const svgTop = svgRect.top + window.scrollY
+          const targetX = getLayoutLeft(marker) + marker.offsetWidth / 2 - svgLeft
+          const targetY = getLayoutTop(marker) + marker.offsetHeight / 2 - svgTop
+          let closestProgress = renderedPathPoints[0].progress
+          let closestDistance = Number.POSITIVE_INFINITY
+
+          renderedPathPoints.forEach((point) => {
+            const distance = (point.x - targetX) ** 2 + (point.y - targetY) ** 2
+
+            if (distance < closestDistance) {
+              closestDistance = distance
+              closestProgress = point.progress
+            }
+          })
+
+          return clamp(closestProgress)
+        }
+
+        const createPathSync = ({
+          activationRatio,
+          leadInRatio,
+          finalScrollRatio,
+          holdUntilFirstAnchor = false,
+          resolveWaypoints,
+          waypoints,
+        }: {
+          activationRatio: number
+          leadInRatio: number
+          finalScrollRatio: number
+          holdUntilFirstAnchor?: boolean
+          resolveWaypoints?: () => number[]
+          waypoints: number[]
+        }) => {
+          if (!journey || stepBlocks.length === 0) return undefined
+
+          let scrollAnchors: number[] = []
+          let leadInStart = 0
+          let pathMilestones = [...waypoints.slice(0, stepBlocks.length), 1]
+
+          const refreshPositions = () => {
+            setPathDashMetrics()
+            const resolvedWaypoints = resolveWaypoints?.() ?? waypoints
+            pathMilestones = [...resolvedWaypoints.slice(0, stepBlocks.length), 1]
+            const journeyTop = getLayoutTop(journey)
+            const sectionBottom = getLayoutTop(section) + section.offsetHeight
+            const activationLineOffset = window.innerHeight * activationRatio
+
+            scrollAnchors = stepBlocks.map((step) => getLayoutTop(step) - activationLineOffset)
+
+            const lastStepAnchor = scrollAnchors[scrollAnchors.length - 1]
+            const preferredFinalAnchor = lastStepAnchor + window.innerHeight * finalScrollRatio
+            const availableFinalAnchor = sectionBottom - window.innerHeight * 0.36
+            const finalAnchor = Math.max(lastStepAnchor + window.innerHeight * 0.24, Math.min(preferredFinalAnchor, availableFinalAnchor))
+
+            scrollAnchors = [...scrollAnchors, finalAnchor]
+            leadInStart = Math.min(journeyTop, scrollAnchors[0] - window.innerHeight * leadInRatio)
+          }
+
+          const progressForScroll = (scrollY: number) => {
+            if (!scrollAnchors.length || !pathMilestones.length) return 0
+
+            if (holdUntilFirstAnchor && scrollY < scrollAnchors[0]) {
+              return 0
+            }
+
+            if (scrollY <= scrollAnchors[0]) {
+              const range = Math.max(1, scrollAnchors[0] - leadInStart)
+              return clamp((scrollY - leadInStart) / range) * pathMilestones[0]
+            }
+
+            for (let index = 1; index < scrollAnchors.length; index += 1) {
+              const previousAnchor = scrollAnchors[index - 1]
+              const nextAnchor = scrollAnchors[index]
+
+              if (scrollY <= nextAnchor) {
+                const segmentProgress = clamp((scrollY - previousAnchor) / Math.max(1, nextAnchor - previousAnchor))
+                return pathMilestones[index - 1] + (pathMilestones[index] - pathMilestones[index - 1]) * segmentProgress
+              }
+            }
+
+            return 1
+          }
+
+          const renderPath = () => {
+            const progress = progressForScroll(window.scrollY)
+            const resolvedProgress = progress >= 0.985 ? 1 : progress
+            path.style.strokeDashoffset = `${pathLength * (1 - resolvedProgress)}`
+          }
+
+          const trigger = ScrollTrigger.create({
+            trigger: journey,
+            start: "top bottom",
+            end: "bottom top",
+            scrub: true,
             invalidateOnRefresh: true,
-          },
+            onRefresh: () => {
+              refreshPositions()
+              renderPath()
+            },
+            onUpdate: renderPath,
+          })
+
+          requestAnimationFrame(() => {
+            refreshPositions()
+            renderPath()
+            ScrollTrigger.refresh()
+          })
+
+          document.fonts?.ready.then(() => ScrollTrigger.refresh()).catch(() => undefined)
+
+          const imageCleanups = Array.from(section.querySelectorAll("img"))
+            .filter((image) => !image.complete)
+            .map((image) => {
+              const refreshOnAssetLoad = () => ScrollTrigger.refresh()
+
+              image.addEventListener("load", refreshOnAssetLoad, { once: true })
+              image.addEventListener("error", refreshOnAssetLoad, { once: true })
+
+              return () => {
+                image.removeEventListener("load", refreshOnAssetLoad)
+                image.removeEventListener("error", refreshOnAssetLoad)
+              }
+            })
+
+          return () => {
+            imageCleanups.forEach((cleanup) => cleanup())
+            trigger.kill()
+          }
+        }
+
+        const createStepRevealAnimations = (activationPercent: number) => {
+          const animations = stepBlocks.map((step) =>
+            gsap.fromTo(
+              step,
+              {
+                autoAlpha: 0,
+                y: 32,
+                scale: 0.96,
+              },
+              {
+                autoAlpha: 1,
+                y: 0,
+                scale: 1,
+                duration: 0.75,
+                ease: "power3.out",
+                scrollTrigger: {
+                  trigger: step,
+                  start: `top ${activationPercent}%`,
+                  toggleActions: "play none none reverse",
+                },
+              },
+            ),
+          )
+
+          return () => {
+            animations.forEach((animation) => {
+              animation.scrollTrigger?.kill()
+              animation.kill()
+            })
+          }
+        }
+
+        matchMedia.add("(min-width: 761px)", () => {
+          const cleanupPath = createPathSync({
+            activationRatio: 0.84,
+            leadInRatio: 0.28,
+            finalScrollRatio: 0.56,
+            waypoints: [0.1, 0.27, 0.43, 0.6, 0.76, 0.88],
+          })
+          const cleanupSteps = createStepRevealAnimations(84)
+
+          return () => {
+            cleanupPath?.()
+            cleanupSteps()
+          }
+        })
+        matchMedia.add("(max-width: 760px)", () => {
+          const cleanupPath = createPathSync({
+            activationRatio: 0.8,
+            leadInRatio: 0.26,
+            finalScrollRatio: 0.72,
+            holdUntilFirstAnchor: true,
+            resolveWaypoints: () => stepMarkers.map((marker) => getPathProgressAtMarker(marker)),
+            waypoints: [0.08, 0.2, 0.34, 0.5, 0.68, 0.84],
+          })
+          const cleanupSteps = createStepRevealAnimations(80)
+
+          return () => {
+            cleanupPath?.()
+            cleanupSteps()
+          }
         })
 
-        revealBlocks.forEach((block) => {
+        nonStepRevealBlocks.forEach((block) => {
           gsap.fromTo(
             block,
             {
@@ -114,6 +386,7 @@ export function HowItWorksSection() {
             },
           )
         })
+
       } else {
         gsap.set(revealBlocks, {
           autoAlpha: 1,
@@ -125,7 +398,10 @@ export function HowItWorksSection() {
       requestAnimationFrame(() => ScrollTrigger.refresh())
     }, section)
 
-    return () => ctx.revert()
+    return () => {
+      pathMatchMedia?.revert()
+      ctx.revert()
+    }
   }, [])
 
   return (
