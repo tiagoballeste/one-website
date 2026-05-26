@@ -2061,29 +2061,51 @@ a {
     display: grid;
   }
 
+  .hero::before {
+    background:
+      linear-gradient(180deg, rgba(3, 5, 31, 0.18) 0%, rgba(3, 5, 31, 0.08) 34%, rgba(3, 5, 31, 0.38) 72%, rgba(3, 5, 31, 0.54) 100%),
+      linear-gradient(90deg, rgba(3, 5, 31, 0.2) 0%, rgba(3, 5, 31, 0.1) 100%);
+  }
+
   .hero__content {
-    left: 24px;
-    top: 170px;
-    width: calc(100vw - 48px);
-    transform: none;
+    left: 50%;
+    top: auto;
+    bottom: clamp(142px, 21svh, 196px);
+    width: min(calc(100vw - 48px), 390px);
+    text-align: center;
+    transform: translateX(-50%);
   }
 
   .hero h1 {
-    font-size: clamp(43px, 13vw, 62px);
-    line-height: 1.02;
+    font-size: clamp(28px, 7.4vw, 35px);
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+  }
+
+  .hero h1 span {
+    display: inline;
+  }
+
+  .hero h1 span + span::before {
+    content: " ";
+  }
+
+  .hero h1 strong {
+    display: block;
   }
 
   .hero__copy {
-    margin-top: 24px;
-    font-size: 17px;
-    line-height: 1.4;
+    max-width: 340px;
+    margin: 12px auto 0;
+    color: rgba(201, 205, 230, 0.9);
+    font-size: clamp(13px, 3.35vw, 15px);
+    line-height: 1.28;
+    text-align: center;
+    word-spacing: 0;
   }
 
   .hero__actions {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 14px;
-    margin-top: 30px;
+    display: none;
   }
 
   .button {
@@ -2095,13 +2117,15 @@ a {
   }
 
   .hero-more {
-    bottom: 24px;
-    font-size: 12px;
+    bottom: clamp(58px, 9svh, 84px);
+    gap: 9px;
+    font-size: 13.5px;
   }
 
   .hero-more__chevron {
-    width: 16px;
-    height: 11px;
+    width: 18px;
+    height: 12px;
+    opacity: 0.82;
   }
 
   .whatsapp-float {
