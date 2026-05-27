@@ -56,6 +56,7 @@ export function LogoPreloader({ onComplete }: LogoPreloaderProps) {
   const outerGradientId = `one-shield-gradient-outer-${reactId}`
   const innerGradientId = `one-shield-gradient-inner-${reactId}`
   const monogramGradientId = `one-shield-gradient-monogram-${reactId}`
+  const goldGlowId = `one-shield-gold-glow-${reactId}`
   const fillGradientIds = [outerGradientId, innerGradientId, monogramGradientId]
   const gradientTransform = `scale(${VIEW_BOX_WIDTH / GRADIENT_SOURCE_VIEW_BOX_WIDTH} ${VIEW_BOX_HEIGHT / GRADIENT_SOURCE_VIEW_BOX_HEIGHT})`
 
@@ -291,8 +292,33 @@ export function LogoPreloader({ onComplete }: LogoPreloaderProps) {
             <clipPath id={clipId}>
               <rect ref={fillRectRef} x="0" y={VIEW_BOX_HEIGHT} width={VIEW_BOX_WIDTH} height="0" />
             </clipPath>
+            <filter
+              id={goldGlowId}
+              x="-130"
+              y="-130"
+              width={VIEW_BOX_WIDTH + 260}
+              height={VIEW_BOX_HEIGHT + 260}
+              filterUnits="userSpaceOnUse"
+              colorInterpolationFilters="sRGB"
+            >
+              <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="goldGlowNear" />
+              <feFlood floodColor="#EFBF04" floodOpacity="0.72" result="goldNearColor" />
+              <feComposite in="goldNearColor" in2="goldGlowNear" operator="in" result="goldNear" />
+              <feGaussianBlur in="SourceAlpha" stdDeviation="13" result="goldGlowWide" />
+              <feFlood floodColor="#EFBF04" floodOpacity="0.34" result="goldWideColor" />
+              <feComposite in="goldWideColor" in2="goldGlowWide" operator="in" result="goldWide" />
+              <feGaussianBlur in="SourceAlpha" stdDeviation="25" result="goldGlowAura" />
+              <feFlood floodColor="#EFBF04" floodOpacity="0.15" result="goldAuraColor" />
+              <feComposite in="goldAuraColor" in2="goldGlowAura" operator="in" result="goldAura" />
+              <feMerge>
+                <feMergeNode in="goldAura" />
+                <feMergeNode in="goldWide" />
+                <feMergeNode in="goldNear" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
           </defs>
-          <g className="logo-preloader__fill" clipPath={`url(#${clipId})`}>
+          <g className="logo-preloader__fill" clipPath={`url(#${clipId})`} filter={`url(#${goldGlowId})`}>
             {SHIELD_PATHS.map((path, index) => (
               <path key={`fill-${path.slice(0, 28)}`} d={path} fill={`url(#${fillGradientIds[index]})`} />
             ))}
