@@ -5,10 +5,9 @@ import { gsap } from "gsap"
 
 type HeroProps = {
   isReady: boolean
-  onOpenRegistration: () => void
 }
 
-export function Hero({ isReady, onOpenRegistration }: HeroProps) {
+export function Hero({ isReady }: HeroProps) {
   const heroRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -71,9 +70,9 @@ export function Hero({ isReady, onOpenRegistration }: HeroProps) {
 
         <div className="hero__content">
           <h1 className="hero-reveal">
-            <span>Fiança Locatícia</span>
+            <span>Fiança locatícia: análise</span>
             <span>
-              rápida e <strong>sem burocracia</strong>
+              rápida e <strong>sem burocracia.</strong>
             </span>
           </h1>
 
@@ -81,15 +80,6 @@ export function Hero({ isReady, onOpenRegistration }: HeroProps) {
             Alternativa moderna ao fiador tradicional e à caução. Avance no contrato de aluguel com
             mais agilidade.
           </p>
-
-          <div className="hero__actions hero-reveal" aria-label="Ações principais">
-            <button className="button button--primary" type="button" onClick={onOpenRegistration}>
-              Cadastrar minha imobiliária
-            </button>
-            <button className="button button--secondary" type="button">
-              Sou corretor
-            </button>
-          </div>
         </div>
 
         <button className="hero-more hero-reveal" type="button" onClick={scrollToNextSection}>

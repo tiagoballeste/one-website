@@ -1,28 +1,42 @@
 "use client"
 
 import { AnimatePresence, motion } from "motion/react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 
 type RegistrationModalProps = {
   isOpen: boolean
   onClose: () => void
 }
 
-type FormValues = {
-  agencyName: string
-  cnpj: string
-  state: string
-  city: string
-  contactName: string
-  contactRole: string
-  whatsapp: string
-  email: string
-  volume: string
-  authorization: boolean
-  communications: boolean
+type CityActuation = {
+  cidade: string
+  uf: string
 }
 
-type Errors = Partial<Record<keyof FormValues, string>>
+type TrackingValues = Partial<Record<"utm_source" | "utm_medium" | "utm_campaign" | "utm_content" | "utm_term", string>>
+
+type FormValues = {
+  razao_social: string
+  nome_fantasia: string
+  cnpj: string
+  cepDraft: string
+  endereco: string
+  ufDraft: string
+  cityDraft: string
+  cidades_ufs_atuacao: CityActuation[]
+  responsavel_principal: string
+  cargo_responsavel: string
+  whatsapp: string
+  email: string
+  site: string
+  instagram: string
+  media_locacoes_mes: number | null
+  aceite_lgpd: boolean
+  opt_in_marketing: boolean
+}
+
+type FormField = keyof FormValues | "submit"
+type Errors = Partial<Record<FormField, string>>
 
 type BrazilState = {
   id: number
@@ -31,59 +45,96 @@ type BrazilState = {
 }
 
 type BrazilCity = {
-  id: number
   nome: string
+  codigo_ibge: string
 }
 
+type CepAddress = {
+  cep: string
+  state: string
+  city: string
+  neighborhood: string
+  street: string
+}
+
+type ProgressPayload = {
+  values: FormValues
+  currentStep: number
+  completedStep: number
+  savedAt: number
+}
+
+type BackendErrorResponse = {
+  detail?: unknown
+  message?: string
+  error?: string
+  field?: FormField
+}
+
+const PROGRESS_KEY = "cadastro_imobiliaria_progresso"
+const PROGRESS_TTL = 24 * 60 * 60 * 1000
+const TOKEN_KEY = "cadastro_imobiliaria_token"
+const UTM_STORAGE_KEY = "cadastro_imobiliaria_utm"
+
 let cachedBrazilStates: BrazilState[] | null = null
+const cachedBrazilCitiesByUf = new Map<string, BrazilCity[]>()
 
 const initialValues: FormValues = {
-  agencyName: "",
+  razao_social: "",
+  nome_fantasia: "",
   cnpj: "",
-  state: "",
-  city: "",
-  contactName: "",
-  contactRole: "",
+  cepDraft: "",
+  endereco: "",
+  ufDraft: "",
+  cityDraft: "",
+  cidades_ufs_atuacao: [],
+  responsavel_principal: "",
+  cargo_responsavel: "",
   whatsapp: "",
   email: "",
-  volume: "Até 5",
-  authorization: false,
-  communications: false,
+  site: "",
+  instagram: "",
+  media_locacoes_mes: null,
+  aceite_lgpd: false,
+  opt_in_marketing: false,
 }
 
 const steps = [
-  { number: 1, label: "Dados da imobiliária" },
-  { number: 2, label: "Responsável" },
-  { number: 3, label: "Perfil e envio" },
+  { number: 1, label: "Dados" },
+  { number: 2, label: "Contato" },
+  { number: 3, label: "Perfil" },
 ]
-
-const states = [
-  { value: "SP", label: "São Paulo", cities: ["São Paulo", "Campinas", "Santos", "Ribeirão Preto"] },
-  { value: "RJ", label: "Rio de Janeiro", cities: ["Rio de Janeiro", "Niterói", "Petrópolis", "Macaé"] },
-  { value: "MG", label: "Minas Gerais", cities: ["Belo Horizonte", "Uberlândia", "Juiz de Fora", "Nova Lima"] },
-  { value: "PR", label: "Paraná", cities: ["Curitiba", "Londrina", "Maringá", "Cascavel"] },
-  { value: "SC", label: "Santa Catarina", cities: ["Florianópolis", "Joinville", "Blumenau", "Itajaí"] },
-  { value: "RS", label: "Rio Grande do Sul", cities: ["Porto Alegre", "Caxias do Sul", "Pelotas", "Canoas"] },
-]
-
-const volumeOptions = ["Até 5", "6 a 15", "31 a 50", "Mais de 50"]
 
 const stepCopy = {
   1: {
     title: "Dados da imobiliária",
-    description: "Primeiro, informe os dados básicos da imobiliária.",
+    description: "Comece com as informações básicas da empresa.",
+    badge: "STEP 1 · DADOS DA IMOBILIÁRIA",
   },
   2: {
-    title: "Responsável pelo cadastro",
-    description: "Agora, informe quem será o contato responsável pela parceria.",
+    title: "Contato e responsável",
+    description: "Informe canais de contato e quem será o ponto focal da parceria.",
+    badge: "STEP 2 · CONTATO E RESPONSÁVEL",
   },
   3: {
     title: "Perfil e envio",
-    description: "Para finalizar, informe o volume médio de locações para entendermos melhor o perfil da imobiliária.",
+    description: "Última etapa. Ajuda nossa equipe a entender melhor o perfil da imobiliária.",
+    badge: "STEP 3 · PERFIL E ENVIO",
   },
 }
 
+const volumeOptions = [
+  { label: "Até 5", value: 3 },
+  { label: "6 a 15", value: 10 },
+  { label: "16 a 50", value: 33 },
+  { label: "Mais de 50", value: 75 },
+]
+
 const onlyDigits = (value: string) => value.replace(/\D/g, "")
+
+const normalizeText = (value: string) => value.trim().replace(/\s+/g, " ")
+
+const stripAccents = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
 
 const formatCnpj = (value: string) => {
   const digits = onlyDigits(value).slice(0, 14)
@@ -94,13 +145,55 @@ const formatCnpj = (value: string) => {
     .replace(/(\d{4})(\d)/, "$1-$2")
 }
 
+const formatCep = (value: string) => {
+  const digits = onlyDigits(value).slice(0, 8)
+  return digits.replace(/^(\d{5})(\d)/, "$1-$2")
+}
+
+const toDisplayCity = (value: string) =>
+  value
+    .toLocaleLowerCase("pt-BR")
+    .replace(/(^|\s|-|')(\p{L})/gu, (_, prefix: string, letter: string) => `${prefix}${letter.toLocaleUpperCase("pt-BR")}`)
+
+const isValidCnpj = (value: string) => {
+  const cnpj = onlyDigits(value)
+  if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false
+
+  const calculateDigit = (length: number) => {
+    const weights = length === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    const sum = weights.reduce((total, weight, index) => total + Number(cnpj[index]) * weight, 0)
+    const remainder = sum % 11
+    return remainder < 2 ? 0 : 11 - remainder
+  }
+
+  return calculateDigit(12) === Number(cnpj[12]) && calculateDigit(13) === Number(cnpj[13])
+}
+
 const formatPhone = (value: string) => {
-  const digits = onlyDigits(value).slice(0, 11)
+  let digits = onlyDigits(value).slice(0, 13)
+  if (digits.startsWith("55")) digits = digits.slice(2)
+  digits = digits.slice(0, 11)
+
   if (digits.length <= 10) {
     return digits.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2")
   }
+
   return digits.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2")
 }
+
+const normalizeWhatsapp = (value: string) => {
+  const digits = onlyDigits(value)
+  if (digits.startsWith("55")) return digits.slice(0, 13)
+  return `55${digits}`.slice(0, 13)
+}
+
+const normalizeUrl = (value: string) => {
+  const url = value.trim()
+  if (!url) return ""
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`
+}
+
+const normalizeInstagram = (value: string) => value.trim().replace(/^@+/, "")
 
 const fetchJson = async <T,>(url: string, signal: AbortSignal): Promise<T> => {
   const response = await fetch(url, {
@@ -110,10 +203,54 @@ const fetchJson = async <T,>(url: string, signal: AbortSignal): Promise<T> => {
   const contentType = response.headers.get("content-type") ?? ""
 
   if (!response.ok || !contentType.includes("application/json")) {
-    throw new Error("A fonte publica retornou uma resposta invalida.")
+    throw new Error("A fonte pública retornou uma resposta inválida.")
   }
 
   return response.json() as Promise<T>
+}
+
+const getProgress = (): ProgressPayload | null => {
+  try {
+    const raw = window.localStorage.getItem(PROGRESS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as ProgressPayload
+    if (!parsed.savedAt || Date.now() - parsed.savedAt > PROGRESS_TTL) {
+      window.localStorage.removeItem(PROGRESS_KEY)
+      return null
+    }
+    return parsed
+  } catch {
+    window.localStorage.removeItem(PROGRESS_KEY)
+    return null
+  }
+}
+
+const extractBackendMessage = (data: BackendErrorResponse) => {
+  if (data.message || data.error) return data.message || data.error
+
+  if (Array.isArray(data.detail)) {
+    const firstDetail = data.detail[0] as { msg?: string; loc?: unknown[] } | undefined
+    if (firstDetail?.msg) return firstDetail.msg
+  }
+
+  if (typeof data.detail === "string") return data.detail
+
+  return ""
+}
+
+const extractBackendField = (data: BackendErrorResponse): FormField | undefined => {
+  if (data.field) return data.field
+
+  if (Array.isArray(data.detail)) {
+    const firstDetail = data.detail[0] as { loc?: unknown[] } | undefined
+    const field = firstDetail?.loc
+      ?.slice()
+      .reverse()
+      .find((item) => typeof item === "string")
+    if (typeof field === "string" && field in initialValues) return field as FormField
+  }
+
+  return undefined
 }
 
 function ArrowIcon({ pulseKey, direction = "right" }: { pulseKey?: number; direction?: "left" | "right" }) {
@@ -127,17 +264,30 @@ function ArrowIcon({ pulseKey, direction = "right" }: { pulseKey?: number; direc
       animate={{ x: direction === "right" ? [0, 8, 0] : [0, -8, 0] }}
       transition={{ duration: 0.36, ease: "easeInOut" }}
     >
-      {direction === "left" ? (
-        <path d="M19 12H5m6-6-6 6 6 6" />
-      ) : (
-        <path d="M5 12h14m-6-6 6 6-6 6" />
-      )}
+      {direction === "left" ? <path d="M19 12H5m6-6-6 6 6 6" /> : <path d="M5 12h14m-6-6 6 6-6 6" />}
     </motion.svg>
   )
 }
 
 function Spinner() {
   return <span className="registration-spinner" aria-hidden="true" />
+}
+
+function RecoveryClockIcon() {
+  return (
+    <svg className="registration-recovery__clock" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="21" />
+      <path d="M32 20v14h12" />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m6 12.5 4 4L18 8" />
+    </svg>
+  )
 }
 
 function SuccessMark() {
@@ -154,15 +304,77 @@ function SuccessMark() {
   )
 }
 
-function Stepper({ currentStep }: { currentStep: number }) {
+function RecoveryPrompt({
+  titleId,
+  onClose,
+  onRestart,
+  onContinue,
+}: {
+  titleId: string
+  onClose: () => void
+  onRestart: () => void
+  onContinue: () => void
+}) {
+  return (
+    <div className="registration-recovery">
+      <button className="registration-recovery__close" type="button" onClick={onClose} aria-label="Fechar aviso de cadastro em andamento">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m6 6 12 12M18 6 6 18" />
+        </svg>
+      </button>
+
+      <div className="registration-recovery__icon">
+        <RecoveryClockIcon />
+      </div>
+
+      <div className="registration-recovery__copy">
+        <h2 id={titleId}>Cadastro em andamento</h2>
+        <p>Encontramos um cadastro não finalizado. Deseja continuar de onde parou?</p>
+      </div>
+
+      <div className="registration-recovery__divider" aria-hidden="true" />
+
+      <div className="registration-recovery__actions">
+        <button className="registration-recovery__button registration-recovery__button--secondary" type="button" onClick={onRestart}>
+          Recomeçar
+        </button>
+        <button className="registration-recovery__button registration-recovery__button--primary" type="button" onClick={onContinue}>
+          Continuar
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function Stepper({
+  currentStep,
+  completedStep,
+  onStepClick,
+}: {
+  currentStep: number
+  completedStep: number
+  onStepClick: (step: number) => void
+}) {
   return (
     <ol className="registration-stepper" aria-label="Progresso do cadastro">
       {steps.map((step, index) => {
-        const isActive = step.number <= currentStep
+        const isActive = step.number === currentStep
+        const isCompleted = step.number <= completedStep && step.number < currentStep
+        const isClickable = step.number <= completedStep + 1 && step.number < currentStep
+
         return (
           <li className="registration-stepper__item" key={step.number}>
-            <span className={`registration-stepper__dot ${isActive ? "is-active" : ""}`}>{step.number}</span>
-            <span className={`registration-stepper__label ${isActive ? "is-active" : ""}`}>{step.label}</span>
+            <button
+              className={`registration-stepper__dot ${isActive ? "is-active" : ""} ${isCompleted ? "is-completed" : ""}`}
+              type="button"
+              onClick={() => onStepClick(step.number)}
+              disabled={!isClickable}
+              aria-current={isActive ? "step" : undefined}
+              aria-label={`${step.label}${isCompleted ? " concluído" : ""}`}
+            >
+              {isCompleted ? <CheckIcon /> : step.number}
+            </button>
+            <span className={`registration-stepper__label ${isActive || isCompleted ? "is-active" : ""}`}>{step.label}</span>
             {index < steps.length - 1 && <span className="registration-stepper__line" aria-hidden="true" />}
           </li>
         )
@@ -173,25 +385,32 @@ function Stepper({ currentStep }: { currentStep: number }) {
 
 export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
   const [currentStep, setCurrentStep] = useState(1)
+  const [completedStep, setCompletedStep] = useState(0)
   const [values, setValues] = useState<FormValues>(initialValues)
   const [errors, setErrors] = useState<Errors>({})
-  const [observation, setObservation] = useState("")
-  const [observationDraft, setObservationDraft] = useState("")
-  const [isObservationOpen, setIsObservationOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [isExpanding, setIsExpanding] = useState(false)
   const [arrowPulse, setArrowPulse] = useState(0)
   const [expanderBounds, setExpanderBounds] = useState({ top: 0, left: 0, width: 0, height: 0 })
   const [brazilStates, setBrazilStates] = useState<BrazilState[]>([])
-  const [cities, setCities] = useState<BrazilCity[]>([])
+  const [brazilCities, setBrazilCities] = useState<BrazilCity[]>([])
   const [isStatesLoading, setIsStatesLoading] = useState(false)
   const [isCitiesLoading, setIsCitiesLoading] = useState(false)
+  const [isCepLoading, setIsCepLoading] = useState(false)
   const [statesError, setStatesError] = useState("")
   const [citiesError, setCitiesError] = useState("")
+  const [cepMessage, setCepMessage] = useState("")
+  const [tracking, setTracking] = useState<TrackingValues>({})
+  const [recoveryProgress, setRecoveryProgress] = useState<ProgressPayload | null>(null)
+  const [isRecoveryPromptOpen, setIsRecoveryPromptOpen] = useState(false)
+  const progressPromptedRef = useRef(false)
+  const lastAutofilledAddressRef = useRef("")
   const modalRef = useRef<HTMLDivElement | null>(null)
   const sheetRef = useRef<HTMLElement | null>(null)
   const submitButtonRef = useRef<HTMLButtonElement | null>(null)
+  const titleId = useId()
+  const cityListId = useId()
 
   useEffect(() => {
     if (!isOpen) return
@@ -199,15 +418,10 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
 
-    const focusableSelector =
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        if (isObservationOpen) {
-          setIsObservationOpen(false)
-          return
-        }
         onClose()
       }
 
@@ -238,7 +452,50 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
       document.body.style.overflow = previousOverflow
       document.removeEventListener("keydown", onKeyDown)
     }
-  }, [isOpen, isObservationOpen, onClose])
+  }, [isOpen, onClose])
+
+  useEffect(() => {
+    if (!isOpen || progressPromptedRef.current) return
+    progressPromptedRef.current = true
+
+    const savedProgress = getProgress()
+    if (!savedProgress) return
+
+    setRecoveryProgress(savedProgress)
+    setIsRecoveryPromptOpen(true)
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) {
+      progressPromptedRef.current = false
+      setIsRecoveryPromptOpen(false)
+      setRecoveryProgress(null)
+      return
+    }
+
+    const keys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const
+    const urlParams = new URLSearchParams(window.location.search)
+    const stored = window.sessionStorage.getItem(UTM_STORAGE_KEY)
+    let storedTracking: TrackingValues = {}
+
+    if (stored) {
+      try {
+        storedTracking = JSON.parse(stored) as TrackingValues
+      } catch {
+        window.sessionStorage.removeItem(UTM_STORAGE_KEY)
+      }
+    }
+
+    const nextTracking = { ...storedTracking }
+
+    keys.forEach((key) => {
+      const value = urlParams.get(key)
+      if (value) nextTracking[key] = value
+    })
+
+    window.sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(nextTracking))
+    setTracking(nextTracking)
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -257,9 +514,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
         const data = await fetchJson<BrazilState[]>(
           "https://servicodados.ibge.gov.br/api/v1/localidades/estados",
           controller.signal,
-        ).catch(() =>
-          fetchJson<BrazilState[]>("https://brasilapi.com.br/api/ibge/uf/v1", controller.signal),
-        )
+        ).catch(() => fetchJson<BrazilState[]>("https://brasilapi.com.br/api/ibge/uf/v1", controller.signal))
         const orderedStates = data
           .map((state) => ({ id: state.id, nome: state.nome, sigla: state.sigla }))
           .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
@@ -268,7 +523,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
         setBrazilStates(orderedStates)
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return
-        setStatesError("Nao foi possivel carregar os estados. Tente novamente.")
+        setStatesError("Não foi possível carregar os estados. Tente novamente.")
       } finally {
         if (!controller.signal.aborted) setIsStatesLoading(false)
       }
@@ -280,10 +535,18 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
   }, [isOpen])
 
   useEffect(() => {
-    if (!values.state) {
-      setCities([])
+    if (!isOpen || !values.ufDraft) {
+      setBrazilCities([])
       setCitiesError("")
       setIsCitiesLoading(false)
+      return
+    }
+
+    const uf = values.ufDraft
+    const cachedCities = cachedBrazilCitiesByUf.get(uf)
+    if (cachedCities) {
+      setBrazilCities(cachedCities)
+      setCitiesError("")
       return
     }
 
@@ -295,25 +558,19 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
 
       try {
         const data = await fetchJson<BrazilCity[]>(
-          `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${values.state}/municipios`,
+          `https://brasilapi.com.br/api/ibge/municipios/v1/${uf}?providers=dados-abertos-br,gov,wikipedia`,
           controller.signal,
-        ).catch(async () => {
-          const fallbackCities = await fetchJson<Array<{ codigo_ibge: string; nome: string }>>(
-            `https://brasilapi.com.br/api/ibge/municipios/v1/${values.state}`,
-            controller.signal,
-          )
-
-          return fallbackCities.map((city) => ({ id: Number(city.codigo_ibge), nome: city.nome }))
-        })
-        setCities(
-          data
-            .map((city) => ({ id: city.id, nome: city.nome }))
-            .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
         )
+        const orderedCities = data
+          .map((city) => ({ ...city, nome: toDisplayCity(city.nome) }))
+          .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+
+        cachedBrazilCitiesByUf.set(uf, orderedCities)
+        setBrazilCities(orderedCities)
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return
-        setCities([])
-        setCitiesError("Nao foi possivel carregar as cidades. Tente novamente.")
+        setBrazilCities([])
+        setCitiesError("Não foi possível carregar as cidades. Você ainda pode digitar manualmente.")
       } finally {
         if (!controller.signal.aborted) setIsCitiesLoading(false)
       }
@@ -322,37 +579,161 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
     fetchCities()
 
     return () => controller.abort()
-  }, [values.state])
+  }, [isOpen, values.ufDraft])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const cep = onlyDigits(values.cepDraft)
+    if (cep.length < 8) {
+      setCepMessage("")
+      setIsCepLoading(false)
+      return
+    }
+
+    const controller = new AbortController()
+    const timeout = window.setTimeout(async () => {
+      setIsCepLoading(true)
+      setCepMessage("")
+
+      try {
+        const data = await fetchJson<CepAddress>(`https://brasilapi.com.br/api/cep/v2/${cep}`, controller.signal)
+        const addressParts = [data.street, data.neighborhood, `${data.city}/${data.state}`].filter(Boolean)
+        const address = addressParts.join(", ")
+
+        setValues((current) => {
+          const currentAddress = normalizeText(current.endereco)
+          const canAutofill = !currentAddress || currentAddress === lastAutofilledAddressRef.current
+
+          if (!canAutofill) return current
+
+          lastAutofilledAddressRef.current = address
+          return { ...current, endereco: address }
+        })
+        setCepMessage(address ? "Endereço sugerido pelo CEP. Você pode editar antes de continuar." : "")
+        setErrors((current) => ({ ...current, endereco: undefined, submit: undefined }))
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return
+        setCepMessage("Não encontramos esse CEP. Preencha o endereço manualmente.")
+      } finally {
+        if (!controller.signal.aborted) setIsCepLoading(false)
+      }
+    }, 420)
+
+    return () => {
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [isOpen, values.cepDraft])
+
+  useEffect(() => {
+    if (!isOpen || isSuccess || isRecoveryPromptOpen) return
+    const hasProgress =
+      Object.entries(values).some(([key, value]) => {
+        if (key === "aceite_lgpd" || key === "opt_in_marketing") return Boolean(value)
+        if (Array.isArray(value)) return value.length > 0
+        return typeof value === "string" ? value.trim().length > 0 : value !== null
+      }) || currentStep > 1
+
+    if (!hasProgress) return
+
+    const payload: ProgressPayload = {
+      values,
+      currentStep,
+      completedStep,
+      savedAt: Date.now(),
+    }
+    window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(payload))
+  }, [completedStep, currentStep, isOpen, isRecoveryPromptOpen, isSuccess, values])
 
   useEffect(() => {
     if (modalRef.current) modalRef.current.scrollTop = 0
   }, [currentStep, isSuccess])
 
+  const citySuggestions = useMemo(() => {
+    const search = stripAccents(values.cityDraft).toLowerCase()
+    if (!values.ufDraft || !brazilCities.length) return []
+    if (!search) return brazilCities.slice(0, 12)
+
+    return brazilCities
+      .filter((city) => stripAccents(city.nome).toLowerCase().includes(search))
+      .slice(0, 12)
+  }, [brazilCities, values.cityDraft, values.ufDraft])
+
   const updateValue = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
     setValues((current) => ({ ...current, [key]: value }))
-    setErrors((current) => ({ ...current, [key]: undefined }))
+    setErrors((current) => ({ ...current, [key]: undefined, submit: undefined }))
+  }
+
+  const addCity = () => {
+    const uf = values.ufDraft
+    const draftCity = normalizeText(values.cityDraft)
+    const matchedCity = brazilCities.find(
+      (city) => stripAccents(city.nome).toLowerCase() === stripAccents(draftCity).toLowerCase(),
+    )
+    const cidade = matchedCity?.nome ?? toDisplayCity(draftCity)
+
+    if (!uf || !cidade) {
+      setErrors((current) => ({
+        ...current,
+        cidades_ufs_atuacao: !uf ? "Selecione a UF e informe a cidade." : "Informe a cidade de atuação.",
+      }))
+      return
+    }
+
+    const alreadyAdded = values.cidades_ufs_atuacao.some(
+      (item) => item.uf === uf && stripAccents(item.cidade).toLowerCase() === stripAccents(cidade).toLowerCase(),
+    )
+
+    if (alreadyAdded) {
+      setErrors((current) => ({ ...current, cidades_ufs_atuacao: "Esta cidade já foi adicionada." }))
+      return
+    }
+
+    setValues((current) => ({
+      ...current,
+      cityDraft: "",
+      cidades_ufs_atuacao: [...current.cidades_ufs_atuacao, { cidade, uf }],
+    }))
+    setErrors((current) => ({ ...current, cidades_ufs_atuacao: undefined }))
+  }
+
+  const removeCity = (city: CityActuation) => {
+    setValues((current) => ({
+      ...current,
+      cidades_ufs_atuacao: current.cidades_ufs_atuacao.filter(
+        (item) => !(item.cidade === city.cidade && item.uf === city.uf),
+      ),
+    }))
   }
 
   const validateStep = (step = currentStep) => {
     const nextErrors: Errors = {}
 
     if (step === 1) {
-      if (!values.agencyName.trim()) nextErrors.agencyName = "Informe o nome da imobiliária."
-      if (onlyDigits(values.cnpj).length !== 14) nextErrors.cnpj = "Informe um CNPJ válido."
-      if (!values.state) nextErrors.state = "Selecione o estado."
-      if (!values.city) nextErrors.city = "Selecione a cidade."
+      const razao = normalizeText(values.razao_social)
+      const fantasia = normalizeText(values.nome_fantasia)
+      if (razao.length < 2 || razao.length > 220) nextErrors.razao_social = "Informe a razão social com 2 a 220 caracteres."
+      if (fantasia.length < 2 || fantasia.length > 220) nextErrors.nome_fantasia = "Informe o nome fantasia com 2 a 220 caracteres."
+      if (!isValidCnpj(values.cnpj)) nextErrors.cnpj = "Informe um CNPJ válido."
+      if (normalizeText(values.endereco).length < 5) nextErrors.endereco = "Informe um endereço com pelo menos 5 caracteres."
+      if (!values.cidades_ufs_atuacao.length) nextErrors.cidades_ufs_atuacao = "Adicione pelo menos uma cidade de atuação."
     }
 
     if (step === 2) {
-      if (!values.contactName.trim()) nextErrors.contactName = "Informe o nome do responsável."
-      if (!values.contactRole.trim()) nextErrors.contactRole = "Informe o cargo do responsável."
-      if (onlyDigits(values.whatsapp).length < 10) nextErrors.whatsapp = "Informe um WhatsApp válido."
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) nextErrors.email = "Informe um e-mail válido."
+      const responsavel = normalizeText(values.responsavel_principal)
+      const cargo = normalizeText(values.cargo_responsavel)
+      const whatsappDigits = onlyDigits(values.whatsapp)
+      if (responsavel.length < 2 || responsavel.length > 200) nextErrors.responsavel_principal = "Informe o nome completo."
+      if (cargo.length < 2 || cargo.length > 120) nextErrors.cargo_responsavel = "Informe o cargo."
+      if (whatsappDigits.length < 10 || whatsappDigits.length > 13) nextErrors.whatsapp = "Informe um WhatsApp válido."
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email) || values.email.length > 255) nextErrors.email = "Informe um e-mail válido."
+      if (values.site && normalizeUrl(values.site).length > 300) nextErrors.site = "Informe um site com até 300 caracteres."
+      if (values.instagram && normalizeInstagram(values.instagram).length > 120) nextErrors.instagram = "Informe um Instagram com até 120 caracteres."
     }
 
     if (step === 3) {
-      if (!values.volume) nextErrors.volume = "Selecione uma média de locações."
-      if (!values.authorization) nextErrors.authorization = "A autorização é obrigatória para enviar."
+      if (!values.aceite_lgpd) nextErrors.aceite_lgpd = "O aceite LGPD é obrigatório para enviar."
     }
 
     setErrors(nextErrors)
@@ -362,7 +743,15 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
   const advanceStep = () => {
     setArrowPulse((current) => current + 1)
     if (!validateStep()) return
+    setCompletedStep((step) => Math.max(step, currentStep))
     setCurrentStep((step) => Math.min(3, step + 1))
+  }
+
+  const goToStep = (step: number) => {
+    if (step <= completedStep + 1 && step < currentStep) {
+      setCurrentStep(step)
+      setErrors({})
+    }
   }
 
   const goBack = () => {
@@ -374,36 +763,131 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
     setArrowPulse((current) => current + 1)
     setValues(initialValues)
     setErrors({})
-    setObservation("")
-    setObservationDraft("")
     setCurrentStep(1)
+    setCompletedStep(0)
     setIsSuccess(false)
     setIsLoading(false)
     setIsExpanding(false)
+    window.localStorage.removeItem(PROGRESS_KEY)
   }
 
-  const submitForm = () => {
+  const closeRecoveryPrompt = () => {
+    setIsRecoveryPromptOpen(false)
+    setRecoveryProgress(null)
+    onClose()
+  }
+
+  const continueSavedProgress = () => {
+    if (!recoveryProgress) return
+    setValues(recoveryProgress.values)
+    setCurrentStep(recoveryProgress.currentStep)
+    setCompletedStep(recoveryProgress.completedStep)
+    setErrors({})
+    setIsSuccess(false)
+    setIsLoading(false)
+    setIsExpanding(false)
+    setIsRecoveryPromptOpen(false)
+    setRecoveryProgress(null)
+  }
+
+  const restartSavedProgress = () => {
+    resetFlow()
+    setIsRecoveryPromptOpen(false)
+    setRecoveryProgress(null)
+  }
+
+  const buildPayload = () => {
+    const payload = {
+      razao_social: normalizeText(values.razao_social),
+      nome_fantasia: normalizeText(values.nome_fantasia),
+      cnpj: onlyDigits(values.cnpj),
+      endereco: normalizeText(values.endereco),
+      cidades_ufs_atuacao: values.cidades_ufs_atuacao,
+      responsavel_principal: normalizeText(values.responsavel_principal),
+      cargo_responsavel: normalizeText(values.cargo_responsavel),
+      whatsapp: normalizeWhatsapp(values.whatsapp),
+      email: values.email.trim(),
+      site: normalizeUrl(values.site),
+      instagram: normalizeInstagram(values.instagram),
+      media_locacoes_mes: values.media_locacoes_mes,
+      aceite_lgpd: values.aceite_lgpd,
+      opt_in_marketing: values.opt_in_marketing,
+      origem: "site",
+      origem_nome: "modal_imobiliaria",
+      ...tracking,
+    }
+
+    return Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== "" && value !== null && value !== undefined),
+    )
+  }
+
+  const showSuccessExpansion = () => {
+    const sheetRect = sheetRef.current?.getBoundingClientRect()
+    const buttonRect = submitButtonRef.current?.getBoundingClientRect()
+
+    if (sheetRect && buttonRect) {
+      setExpanderBounds({
+        top: buttonRect.top - sheetRect.top,
+        left: buttonRect.left - sheetRect.left,
+        width: buttonRect.width,
+        height: buttonRect.height,
+      })
+    }
+
+    setIsExpanding(true)
+  }
+
+  const submitForm = async () => {
     setArrowPulse((current) => current + 1)
     if (!validateStep(3) || isLoading || isExpanding) return
 
     setIsLoading(true)
+    setErrors({})
 
-    window.setTimeout(() => {
-      const sheetRect = sheetRef.current?.getBoundingClientRect()
-      const buttonRect = submitButtonRef.current?.getBoundingClientRect()
+    try {
+      const response = await fetch("/api/imobiliarias", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(buildPayload()),
+      })
 
-      if (sheetRect && buttonRect) {
-        setExpanderBounds({
-          top: buttonRect.top - sheetRect.top,
-          left: buttonRect.left - sheetRect.left,
-          width: buttonRect.width,
-          height: buttonRect.height,
-        })
+      const data = (await response.json().catch(() => ({}))) as BackendErrorResponse & {
+        id?: string
+        token_cadastro?: string
       }
 
-      setIsExpanding(true)
+      if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error("Esta imobiliária já está cadastrada")
+        }
+
+        const backendMessage = extractBackendMessage(data)
+        const backendField = extractBackendField(data)
+
+        if ((response.status === 400 || response.status === 422) && backendField) {
+          setErrors({ [backendField]: backendMessage || "Revise este campo." })
+          return
+        }
+
+        throw new Error(response.status >= 500 ? backendMessage || "Erro ao enviar. Tente novamente em alguns instantes." : backendMessage || "Não foi possível enviar o cadastro.")
+      }
+
+      if (data.token_cadastro) {
+        window.localStorage.setItem(TOKEN_KEY, data.token_cadastro)
+      }
+
+      window.localStorage.removeItem(PROGRESS_KEY)
+      setCompletedStep(3)
+      showSuccessExpansion()
+    } catch (error) {
+      setErrors({ submit: error instanceof Error ? error.message : "Erro ao enviar. Tente novamente em alguns instantes." })
+    } finally {
       setIsLoading(false)
-    }, 720)
+    }
   }
 
   const finishExpansion = () => {
@@ -411,36 +895,39 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
     setIsExpanding(false)
   }
 
-  const closeObservation = () => {
-    setObservationDraft(observation)
-    setIsObservationOpen(false)
-  }
-
-  const saveObservation = () => {
-    setObservation(observationDraft)
-    setIsObservationOpen(false)
-  }
-
-  const renderFieldError = (key: keyof FormValues) =>
+  const renderFieldError = (key: FormField) =>
     errors[key] ? <span className="registration-field__error">{errors[key]}</span> : null
+
+  const fieldClass = (key: FormField, extra = "") => `registration-field ${extra} ${errors[key] ? "has-error" : ""}`.trim()
 
   const renderStep = () => {
     if (currentStep === 1) {
       return (
-        <div className="registration-fields">
-          <label className="registration-field">
-            <span>Dados da imobiliária</span>
+        <div className="registration-fields registration-fields--company">
+          <label className={fieldClass("razao_social")}>
+            <span>Razão social *</span>
             <input
-              value={values.agencyName}
-              onChange={(event) => updateValue("agencyName", event.target.value)}
+              value={values.razao_social}
+              onChange={(event) => updateValue("razao_social", event.target.value.slice(0, 220))}
+              placeholder="Ex: Imobiliária Central Ltda"
+              autoComplete="organization"
+            />
+            {renderFieldError("razao_social")}
+          </label>
+
+          <label className={fieldClass("nome_fantasia")}>
+            <span>Nome fantasia *</span>
+            <input
+              value={values.nome_fantasia}
+              onChange={(event) => updateValue("nome_fantasia", event.target.value.slice(0, 220))}
               placeholder="Ex: Imobiliária Central"
               autoComplete="organization"
             />
-            {renderFieldError("agencyName")}
+            {renderFieldError("nome_fantasia")}
           </label>
 
-          <label className="registration-field">
-            <span>CNPJ</span>
+          <label className={fieldClass("cnpj")}>
+            <span>CNPJ *</span>
             <input
               value={values.cnpj}
               onChange={(event) => updateValue("cnpj", formatCnpj(event.target.value))}
@@ -450,106 +937,206 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
             {renderFieldError("cnpj")}
           </label>
 
-          <label className="registration-field registration-field--select">
-            <span>Estado</span>
-            <select
-              value={values.state}
-              onChange={(event) => {
-                const nextState = event.target.value
-                setValues((current) => ({ ...current, state: nextState, city: "" }))
-                setErrors((current) => ({ ...current, state: undefined, city: undefined }))
-              }}
-              disabled={isStatesLoading}
-            >
-              <option value="">
-                {isStatesLoading ? "Carregando estados..." : statesError ? "Estados indisponiveis" : "Selecione o estado"}
-              </option>
-              {brazilStates.map((state) => (
-                <option key={state.id} value={state.sigla}>
-                  {state.nome} ({state.sigla})
-                </option>
-              ))}
-            </select>
-            {renderFieldError("state")}
-            {statesError && <span className="registration-field__hint">{statesError}</span>}
+          <label className="registration-field">
+            <span>CEP</span>
+            <input
+              value={values.cepDraft}
+              onChange={(event) => updateValue("cepDraft", formatCep(event.target.value))}
+              placeholder="00000-000"
+              inputMode="numeric"
+              autoComplete="postal-code"
+            />
+            <span className="registration-field__hint">
+              {isCepLoading ? "Buscando endereço..." : cepMessage || "Opcional. Use para preencher o endereço automaticamente."}
+            </span>
           </label>
 
-          <label className="registration-field registration-field--select">
-            <span>Cidade</span>
-            <select
-              value={values.city}
-              onChange={(event) => updateValue("city", event.target.value)}
-              disabled={!values.state || isCitiesLoading || Boolean(citiesError)}
-            >
-              <option value="">
-                {!values.state
-                  ? "Selecione o estado primeiro"
-                  : isCitiesLoading
-                    ? "Carregando cidades..."
-                    : citiesError
-                      ? "Cidades indisponiveis"
-                      : "Selecione a cidade"}
-              </option>
-              {cities.map((city) => (
-                <option key={city.id} value={city.nome}>
-                  {city.nome}
-                </option>
-              ))}
-            </select>
-            {renderFieldError("city")}
-            {citiesError && <span className="registration-field__hint">{citiesError}</span>}
+          <label className={fieldClass("endereco")}>
+            <span>Endereço *</span>
+            <input
+              value={values.endereco}
+              onChange={(event) => updateValue("endereco", event.target.value)}
+              placeholder="Rua, número, bairro, cidade"
+              autoComplete="street-address"
+            />
+            {renderFieldError("endereco")}
           </label>
+
+          <div className={`registration-city-manager ${errors.cidades_ufs_atuacao ? "has-error" : ""}`}>
+            <div className="registration-city-manager__title">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 21s7-5.1 7-11a7 7 0 0 0-14 0c0 5.9 7 11 7 11Zm0-8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+              </svg>
+              <span>Cidades de atuação *</span>
+            </div>
+
+            <div className="registration-city-manager__inputs">
+              <label className="registration-field registration-field--select">
+                <span className="sr-only">UF</span>
+                <select
+                  value={values.ufDraft}
+                  onChange={(event) => {
+                    updateValue("ufDraft", event.target.value)
+                    updateValue("cityDraft", "")
+                  }}
+                  disabled={isStatesLoading}
+                  aria-label="UF"
+                >
+                  <option value="">{isStatesLoading ? "..." : "UF"}</option>
+                  {brazilStates.map((state) => (
+                    <option key={state.id} value={state.sigla}>
+                      {state.sigla}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="registration-field registration-city-manager__city">
+                <span className="sr-only">Cidade</span>
+                <input
+                  value={values.cityDraft}
+                  onChange={(event) => updateValue("cityDraft", event.target.value)}
+                  list={values.ufDraft ? cityListId : undefined}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault()
+                      addCity()
+                    }
+                  }}
+                  placeholder={
+                    !values.ufDraft ? "Selecione a UF primeiro" : isCitiesLoading ? "Carregando cidades..." : "Digite a cidade..."
+                  }
+                  disabled={!values.ufDraft}
+                />
+                {values.ufDraft && (
+                  <datalist id={cityListId}>
+                    {citySuggestions.map((city) => (
+                      <option key={`${city.codigo_ibge}-${city.nome}`} value={city.nome} />
+                    ))}
+                  </datalist>
+                )}
+              </label>
+
+              <button className="registration-city-manager__add" type="button" onClick={addCity} disabled={!values.ufDraft}>
+                + Adicionar
+              </button>
+            </div>
+
+            {values.cidades_ufs_atuacao.length > 0 && (
+              <div className="registration-city-manager__chips" aria-label="Cidades adicionadas">
+                {values.cidades_ufs_atuacao.map((city) => (
+                  <button
+                    className="registration-chip"
+                    key={`${city.cidade}-${city.uf}`}
+                    type="button"
+                    onClick={() => removeCity(city)}
+                    aria-label={`Remover ${city.cidade} - ${city.uf}`}
+                  >
+                    {city.cidade} - {city.uf}
+                    <span aria-hidden="true">×</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <span className="registration-field__hint">
+              {values.cidades_ufs_atuacao.length} {values.cidades_ufs_atuacao.length === 1 ? "cidade adicionada" : "cidades adicionadas"}. Adicione pelo menos 1.
+            </span>
+            {statesError && <span className="registration-field__hint">{statesError}</span>}
+            {citiesError && <span className="registration-field__hint">{citiesError}</span>}
+            {renderFieldError("cidades_ufs_atuacao")}
+          </div>
         </div>
       )
     }
 
     if (currentStep === 2) {
       return (
-        <div className="registration-fields">
-          <label className="registration-field">
-            <span>Nome do responsável</span>
-            <input
-              value={values.contactName}
-              onChange={(event) => updateValue("contactName", event.target.value)}
-              placeholder="Ex: João da Silva"
-              autoComplete="name"
-            />
-            {renderFieldError("contactName")}
-          </label>
+        <div className="registration-fields registration-fields--grouped">
+          <div className="registration-field-group">
+            <p className="registration-field-group__title">RESPONSÁVEL</p>
+            <div className="registration-fields">
+              <label className={fieldClass("responsavel_principal")}>
+                <span>Nome completo *</span>
+                <input
+                  value={values.responsavel_principal}
+                  onChange={(event) => updateValue("responsavel_principal", event.target.value.slice(0, 200))}
+                  placeholder="Ex: João da Silva"
+                  autoComplete="name"
+                />
+                {renderFieldError("responsavel_principal")}
+              </label>
 
-          <label className="registration-field">
-            <span>Cargo do responsável</span>
-            <input
-              value={values.contactRole}
-              onChange={(event) => updateValue("contactRole", event.target.value)}
-              placeholder="Ex: Diretor Comercial"
-            />
-            {renderFieldError("contactRole")}
-          </label>
+              <label className={fieldClass("cargo_responsavel")}>
+                <span>Cargo *</span>
+                <input
+                  value={values.cargo_responsavel}
+                  onChange={(event) => updateValue("cargo_responsavel", event.target.value.slice(0, 120))}
+                  placeholder="Ex: Diretor Comercial"
+                />
+                {renderFieldError("cargo_responsavel")}
+              </label>
+            </div>
+          </div>
 
-          <label className="registration-field">
-            <span>WhatsApp</span>
-            <input
-              value={values.whatsapp}
-              onChange={(event) => updateValue("whatsapp", formatPhone(event.target.value))}
-              placeholder="(11) 99999-9999"
-              inputMode="tel"
-              autoComplete="tel"
-            />
-            {renderFieldError("whatsapp")}
-          </label>
+          <div className="registration-field-group">
+            <p className="registration-field-group__title">CONTATO</p>
+            <div className="registration-fields">
+              <label className={fieldClass("whatsapp")}>
+                <span>WhatsApp *</span>
+                <input
+                  value={values.whatsapp}
+                  onChange={(event) => updateValue("whatsapp", formatPhone(event.target.value))}
+                  placeholder="(11) 99999-9999"
+                  inputMode="tel"
+                  autoComplete="tel"
+                />
+                {renderFieldError("whatsapp")}
+              </label>
 
-          <label className="registration-field">
-            <span>E-mail profissional</span>
-            <input
-              value={values.email}
-              onChange={(event) => updateValue("email", event.target.value)}
-              placeholder="exemplo@imobiliaria.com.br"
-              type="email"
-              autoComplete="email"
-            />
-            {renderFieldError("email")}
-          </label>
+              <label className={fieldClass("email")}>
+                <span>E-mail *</span>
+                <input
+                  value={values.email}
+                  onChange={(event) => updateValue("email", event.target.value.slice(0, 255))}
+                  placeholder="contato@imobiliaria.com.br"
+                  type="email"
+                  autoComplete="email"
+                />
+                {renderFieldError("email")}
+              </label>
+            </div>
+          </div>
+
+          <div className="registration-field-group">
+            <p className="registration-field-group__title">
+              PRESENÇA DIGITAL <span>opcional</span>
+            </p>
+            <div className="registration-fields">
+              <label className={fieldClass("site")}>
+                <span>Site</span>
+                <input
+                  value={values.site}
+                  onChange={(event) => updateValue("site", event.target.value.slice(0, 300))}
+                  onBlur={() => updateValue("site", normalizeUrl(values.site))}
+                  placeholder="https://imobiliaria.com.br"
+                  inputMode="url"
+                />
+                {renderFieldError("site")}
+              </label>
+
+              <label className={fieldClass("instagram")}>
+                <span>Instagram</span>
+                <input
+                  value={values.instagram}
+                  onChange={(event) => updateValue("instagram", event.target.value.slice(0, 120))}
+                  onBlur={() => updateValue("instagram", normalizeInstagram(values.instagram))}
+                  placeholder="@imobiliaria"
+                />
+                {renderFieldError("instagram")}
+              </label>
+            </div>
+          </div>
         </div>
       )
     }
@@ -557,56 +1144,50 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
     return (
       <div className="registration-profile">
         <fieldset className="registration-volume">
-          <legend>Média de locações por mês</legend>
+          <legend>
+            Média de locações por mês <span>opcional</span>
+          </legend>
           <div className="registration-volume__options">
             {volumeOptions.map((option) => (
               <button
-                className={`registration-volume__option ${values.volume === option ? "is-selected" : ""}`}
-                key={option}
+                className={`registration-volume__option ${values.media_locacoes_mes === option.value ? "is-selected" : ""}`}
+                key={option.value}
                 type="button"
-                onClick={() => updateValue("volume", option)}
+                onClick={() => updateValue("media_locacoes_mes", option.value)}
               >
-                {option}
+                {option.label}
               </button>
             ))}
           </div>
-          {renderFieldError("volume")}
+          <span className="registration-field__hint">Será enviado como número médio.</span>
         </fieldset>
 
-        <button
-          className="registration-observation-trigger"
-          type="button"
-          onClick={() => {
-            setObservationDraft(observation)
-            setIsObservationOpen(true)
-          }}
-        >
-          <img src="/icons/registration/anotacao.svg" alt="" aria-hidden="true" />
-          {observation ? "Editar observação para a equipe" : "Adicionar observação para a equipe"}
-        </button>
+        <div className="registration-checks">
+          <label className={`registration-check ${errors.aceite_lgpd ? "has-error" : ""}`}>
+            <input
+              checked={values.aceite_lgpd}
+              onChange={(event) => updateValue("aceite_lgpd", event.target.checked)}
+              type="checkbox"
+            />
+            <span>
+              Declaro que as informações fornecidas são verdadeiras e autorizo a ONE Fiança Locatícia a utilizar meus dados para análise do cadastro, contato comercial e elaboração de proposta de parceria, conforme a{" "}
+              <a href="/politica-de-privacidade" target="_blank" rel="noopener noreferrer">
+                Política de Privacidade
+              </a>
+              . *
+            </span>
+          </label>
+          {renderFieldError("aceite_lgpd")}
 
-        <label className="registration-check">
-          <input
-            checked={values.authorization}
-            onChange={(event) => updateValue("authorization", event.target.checked)}
-            type="checkbox"
-          />
-          <span>
-            Declaro que as informações fornecidas são verdadeiras e autorizo a ONE Fiança Locatícia a
-            utilizar meus dados para análise do cadastro, contato comercial e elaboração de proposta de
-            parceria, conforme a Política de Privacidade.
-          </span>
-        </label>
-        {renderFieldError("authorization")}
-
-        <label className="registration-check">
-          <input
-            checked={values.communications}
-            onChange={(event) => updateValue("communications", event.target.checked)}
-            type="checkbox"
-          />
-          <span>Aceito receber comunicações da ONE Fiança Locatícia por WhatsApp, e-mail ou telefone.</span>
-        </label>
+          <label className="registration-check">
+            <input
+              checked={values.opt_in_marketing}
+              onChange={(event) => updateValue("opt_in_marketing", event.target.checked)}
+              type="checkbox"
+            />
+            <span>Aceito receber comunicações da ONE Fiança Locatícia por WhatsApp, e-mail ou telefone.</span>
+          </label>
+        </div>
       </div>
     )
   }
@@ -615,7 +1196,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="registration-modal"
+          className={`registration-modal ${isRecoveryPromptOpen ? "registration-modal--recovery" : ""}`}
           role="presentation"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -623,14 +1204,19 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
           transition={{ duration: 0.22 }}
           data-lenis-prevent
         >
-          <button className="registration-modal__backdrop" type="button" aria-label="Fechar cadastro" onClick={onClose} />
+          <button
+            className="registration-modal__backdrop"
+            type="button"
+            aria-label={isRecoveryPromptOpen ? "Fechar aviso de cadastro em andamento" : "Fechar cadastro"}
+            onClick={isRecoveryPromptOpen ? closeRecoveryPrompt : onClose}
+          />
 
           <motion.section
             ref={sheetRef}
-            className={`registration-modal__sheet ${isSuccess ? "registration-modal__sheet--success" : ""}`}
+            className={`registration-modal__sheet ${isSuccess ? "registration-modal__sheet--success" : ""} ${isRecoveryPromptOpen ? "registration-modal__sheet--recovery" : ""}`}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="registration-title"
+            aria-labelledby={titleId}
             tabIndex={-1}
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -639,10 +1225,17 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
           >
             <div
               ref={modalRef}
-              className={`registration-modal__main ${isObservationOpen ? "registration-modal__main--blurred" : ""}`}
+              className={`registration-modal__main ${isRecoveryPromptOpen ? "registration-modal__main--recovery" : ""}`}
               tabIndex={-1}
             >
-              {!isSuccess ? (
+              {isRecoveryPromptOpen ? (
+                <RecoveryPrompt
+                  titleId={titleId}
+                  onClose={closeRecoveryPrompt}
+                  onRestart={restartSavedProgress}
+                  onContinue={continueSavedProgress}
+                />
+              ) : !isSuccess ? (
                 <>
                   <button className="registration-modal__close" type="button" onClick={onClose} aria-label="Fechar cadastro">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -650,7 +1243,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
                     </svg>
                   </button>
 
-                  <Stepper currentStep={currentStep} />
+                  <Stepper currentStep={currentStep} completedStep={completedStep} onStepClick={goToStep} />
 
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -662,7 +1255,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
                       transition={{ duration: 0.28, ease: "easeInOut" }}
                     >
                       <div className="registration-step__header">
-                        <h2 id="registration-title">{stepCopy[currentStep as 1 | 2 | 3].title}</h2>
+                        <h2 id={titleId}>{stepCopy[currentStep as 1 | 2 | 3].title}</h2>
                         <p>{stepCopy[currentStep as 1 | 2 | 3].description}</p>
                       </div>
 
@@ -670,9 +1263,12 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
                     </motion.div>
                   </AnimatePresence>
 
+                  {errors.submit && <div className="registration-submit-error">{errors.submit}</div>}
+
                   <div className="registration-modal__footer">
                     {currentStep > 1 ? (
                       <button className="registration-button registration-button--secondary" type="button" onClick={goBack}>
+                        <ArrowIcon direction="left" />
                         Voltar
                       </button>
                     ) : (
@@ -689,14 +1285,17 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
                         ref={submitButtonRef}
                         className={`registration-button registration-button--primary ${isLoading ? "is-loading" : ""}`}
                         type="button"
-                        disabled={isLoading || isExpanding}
+                        disabled={isLoading || isExpanding || !values.aceite_lgpd}
                         onClick={submitForm}
                       >
                         {isLoading ? (
-                          <Spinner />
+                          <>
+                            <Spinner />
+                            Enviando...
+                          </>
                         ) : (
                           <>
-                            Enviar cadastro da imobiliária
+                            Enviar cadastro
                             <ArrowIcon pulseKey={arrowPulse} />
                           </>
                         )}
@@ -708,39 +1307,6 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
                 <SuccessScreen onClose={onClose} onReset={resetFlow} arrowPulse={arrowPulse} />
               )}
             </div>
-
-            <AnimatePresence>
-              {isObservationOpen && (
-                <motion.div
-                  className="registration-observation-layer"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="observation-title"
-                  initial={{ opacity: 0, scale: 0.94, y: 16 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.96, y: 10 }}
-                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <div className="registration-observation-modal">
-                  <button className="registration-observation-modal__close" type="button" onClick={closeObservation} aria-label="Fechar observações">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="m6 6 12 12M18 6 6 18" />
-                    </svg>
-                  </button>
-                  <h3 id="observation-title">Adicionar observações</h3>
-                  <textarea
-                    value={observationDraft}
-                    onChange={(event) => setObservationDraft(event.target.value)}
-                    placeholder="Escreva aqui..."
-                    autoFocus
-                  />
-                  <button className="registration-observation-modal__confirm" type="button" onClick={saveObservation} aria-label="Salvar observações">
-                    <ArrowIcon pulseKey={arrowPulse} />
-                  </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             <AnimatePresence>
               {isExpanding && (
@@ -788,21 +1354,14 @@ function SuccessScreen({
     {
       title: "Análise do cadastro",
       description: "Verificamos os dados enviados pela imobiliária.",
-      icon: (
-        <path d="M7 4h7l4 4v12H7V4Zm7 0v5h5M10 13h6M10 16h4m3 1 4 4m-2-8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" />
-      ),
     },
     {
       title: "Contato da equipe",
       description: "Entraremos em contato por WhatsApp, e-mail ou telefone.",
-      icon: (
-        <path d="M12 4a8 8 0 0 0-6.7 12.3L4 21l4.8-1.3A8 8 0 1 0 12 4Zm-2.4 5.2c.2 2.6 2.6 5 5.2 5.2l1.2-1.2 2.1.8c-.5 1.6-1.8 2.6-3.3 2.6-3.8 0-7.4-3.6-7.4-7.4 0-1.5 1-2.8 2.6-3.3l.8 2.1-1.2 1.2Z" />
-      ),
     },
     {
       title: "Avanço da parceria",
       description: "Se estiver tudo certo, seguimos com a ativação e próximos alinhamentos.",
-      icon: <path d="M12 3c3.2 2.4 4.8 5.2 4.8 8.4L20 14l-3.6 1.1A8.5 8.5 0 0 1 12 21a8.5 8.5 0 0 1-4.4-5.9L4 14l3.2-2.6C7.2 8.2 8.8 5.4 12 3Zm0 0v18m-2-8h4" />,
     },
   ]
 
