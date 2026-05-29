@@ -2908,23 +2908,33 @@ a {
 }
 
 .products-stack {
-  --products-sticky-top: clamp(94px, 12vh, 138px);
+  --products-card-step: clamp(14px, 1.2vw, 22px);
   position: relative;
-  display: grid;
   margin-top: clamp(62px, 5.8vw, 92px);
-  padding-bottom: clamp(92px, 18vh, 180px);
+  height: calc(var(--products-count) * 100vh);
+}
+
+.products-card-sticky {
+  position: sticky;
+  top: 0;
+  z-index: var(--stack-z);
+  display: flex;
+  height: 100vh;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
 }
 
 .products-card {
-  position: sticky;
-  top: var(--products-sticky-top);
+  position: relative;
+  top: calc(var(--stack-index) * var(--products-card-step));
   z-index: var(--stack-z);
   display: grid;
   width: 100%;
   height: clamp(500px, 42vw, 710px);
   min-height: 0;
   overflow: hidden;
-  margin: 0 auto clamp(92px, 15vh, 150px);
+  margin: 0 auto;
   border: 1px solid rgba(201, 205, 230, 0.08);
   border-radius: clamp(18px, 1.45vw, 28px);
   background: #11112b;
@@ -2932,12 +2942,8 @@ a {
     0 34px 86px rgba(0, 0, 0, 0.34),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   isolation: isolate;
-  transform: translateY(var(--stack-offset)) scale(var(--stack-scale));
   transform-origin: center top;
-}
-
-.products-card:last-child {
-  margin-bottom: 0;
+  will-change: transform;
 }
 
 .products-card::before,
@@ -3019,8 +3025,22 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .products-card {
+  .products-stack {
+    height: auto;
+  }
+
+  .products-card-sticky {
     position: relative;
+    top: auto;
+    height: auto;
+    margin-bottom: 24px;
+  }
+
+  .products-card-sticky:last-child {
+    margin-bottom: 0;
+  }
+
+  .products-card {
     top: auto;
     transform: none;
   }
@@ -3717,17 +3737,19 @@ a {
   }
 
   .products-stack {
-    --products-sticky-top: clamp(74px, 12svh, 96px);
+    --products-card-step: clamp(7px, 2.2vw, 10px);
     margin-top: 48px;
-    padding-bottom: 84px;
+    height: calc(var(--products-count) * 100svh);
+  }
+
+  .products-card-sticky {
+    height: 100svh;
   }
 
   .products-card {
     height: min(68svh, 560px);
     min-height: 420px;
-    margin-bottom: clamp(62px, 13svh, 96px);
     border-radius: 16px;
-    transform: translateY(calc(var(--stack-offset) * 0.5)) scale(var(--stack-scale));
   }
 
   .products-card::before {

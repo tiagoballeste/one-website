@@ -4,11 +4,20 @@ import { useEffect, useRef } from "react"
 import type { CSSProperties } from "react"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
-import { useReducedMotion } from "motion/react"
+import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react"
 
 gsap.registerPlugin(ScrollTrigger)
 
-const products = [
+type Product = {
+  id: string
+  title: string
+  description: string
+  image: string
+  mobileImage: string
+  alt: string
+}
+
+const products: Product[] = [
   {
     id: "residencial",
     title: "Residencial",
@@ -45,9 +54,59 @@ const products = [
   },
 ]
 
+function ProductStackCard({
+  index,
+  product,
+  reduceMotion,
+  scrollYProgress,
+  total,
+}: {
+  index: number
+  product: Product
+  reduceMotion: boolean
+  scrollYProgress: MotionValue<number>
+  total: number
+}) {
+  const rangeStart = index / total
+  const targetScale = Math.max(0.88, 1 - (total - index - 1) * 0.04)
+  const scale = useTransform(scrollYProgress, [rangeStart, 1], [1, targetScale])
+
+  return (
+    <div
+      className="products-card-sticky"
+      style={
+        {
+          "--stack-index": index,
+          "--stack-z": total + index,
+        } as CSSProperties
+      }
+    >
+      <motion.article
+        className="products-card"
+        style={{ scale: reduceMotion ? 1 : scale }}
+        aria-labelledby={`product-card-${product.id}`}
+      >
+        <picture className="products-card__media">
+          <source media="(max-width: 760px)" srcSet={product.mobileImage} />
+          <img src={product.image} alt={product.alt} loading={index === 0 ? "eager" : "lazy"} />
+        </picture>
+        <div className="products-card__content">
+          <h3 id={`product-card-${product.id}`}>{product.title}</h3>
+          <p>{product.description}</p>
+        </div>
+      </motion.article>
+    </div>
+  )
+}
+
 export function ProductsSection() {
   const sectionRef = useRef<HTMLElement | null>(null)
-  const reduceMotion = useReducedMotion()
+  const stackRef = useRef<HTMLDivElement | null>(null)
+  const reduceMotion = Boolean(useReducedMotion())
+  const { scrollYProgress } = useScroll({
+    target: stackRef,
+    offset: ["start start", "end end"],
+  })
 
   useEffect(() => {
     const section = sectionRef.current
@@ -98,8 +157,7 @@ export function ProductsSection() {
         <header className="products-section__intro">
           <span className="products-section__pill products-reveal">Produtos</span>
           <h2 className="products-section__headline products-reveal" id="products-title">
-            <span>Soluções para diferentes</span>
-            {" "}
+            <span>Soluções para diferentes </span>
             <span>
               tipos de <strong>imóveis e operações</strong>
             </span>
@@ -110,28 +168,21 @@ export function ProductsSection() {
           </p>
         </header>
 
-        <div className="products-stack" aria-label="Catálogo de produtos">
+        <div
+          ref={stackRef}
+          className="products-stack"
+          aria-label="Catálogo de produtos"
+          style={{ "--products-count": products.length } as CSSProperties}
+        >
           {products.map((product, index) => (
-            <article
-              className="products-card products-reveal"
+            <ProductStackCard
+              index={index}
               key={product.id}
-              style={
-                {
-                  "--stack-offset": `${index * 16}px`,
-                  "--stack-scale": `${1 - index * 0.018}`,
-                  "--stack-z": `${products.length + index}`,
-                } as CSSProperties
-              }
-            >
-              <picture className="products-card__media">
-                <source media="(max-width: 760px)" srcSet={product.mobileImage} />
-                <img src={product.image} alt={product.alt} loading={index === 0 ? "eager" : "lazy"} />
-              </picture>
-              <div className="products-card__content">
-                <h3>{product.title}</h3>
-                <p>{product.description}</p>
-              </div>
-            </article>
+              product={product}
+              reduceMotion={reduceMotion}
+              scrollYProgress={scrollYProgress}
+              total={products.length}
+            />
           ))}
         </div>
       </div>
