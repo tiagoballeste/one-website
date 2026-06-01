@@ -35,8 +35,6 @@ const partners = [
   },
 ]
 
-const carouselLogos = [...partners, ...partners]
-
 export function TrustSection() {
   const sectionRef = useRef<HTMLElement | null>(null)
   const reducedMotion = useReducedMotion()
@@ -85,17 +83,16 @@ export function TrustSection() {
         <div className="trust-carousel trust-reveal" aria-label="Parceiros institucionais da ONE">
           <div className="trust-carousel__viewport">
             <div className="trust-carousel__track">
-              {carouselLogos.map((partner, index) => (
-                <article
-                  className="trust-carousel__card"
-                  data-partner={partner.id}
-                  key={`${partner.name}-${index}`}
-                  aria-hidden={index >= partners.length}
-                >
-                  <span className="trust-carousel__logo-frame">
-                    <img src={partner.logo} alt={index < partners.length ? partner.name : ""} />
-                  </span>
-                </article>
+              {[0, 1].map((groupIndex) => (
+                <div className="trust-carousel__group" key={groupIndex} aria-hidden={groupIndex === 1}>
+                  {partners.map((partner) => (
+                    <article className="trust-carousel__card" data-partner={partner.id} key={`${partner.id}-${groupIndex}`}>
+                      <span className="trust-carousel__logo-frame">
+                        <img src={partner.logo} alt={groupIndex === 0 ? partner.name : ""} />
+                      </span>
+                    </article>
+                  ))}
+                </div>
               ))}
             </div>
           </div>

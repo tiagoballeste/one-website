@@ -16,6 +16,7 @@ const navLinks = [
 export function SiteHeader({ onOpenRegistration }: SiteHeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -38,6 +39,50 @@ export function SiteHeader({ onOpenRegistration }: SiteHeaderProps) {
 
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 760px)")
+    let previousScrollY = window.scrollY
+    let ticking = false
+
+    const updateHeaderVisibility = () => {
+      const currentScrollY = window.scrollY
+      const delta = currentScrollY - previousScrollY
+      const isMobile = mobileQuery.matches
+
+      if (!isMobile || isMenuOpen || currentScrollY < 120) {
+        setIsMobileHeaderHidden(false)
+      } else if (delta > 8) {
+        setIsMobileHeaderHidden(true)
+      } else if (delta < -8) {
+        setIsMobileHeaderHidden(false)
+      }
+
+      previousScrollY = currentScrollY
+      ticking = false
+    }
+
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateHeaderVisibility)
+        ticking = true
+      }
+    }
+
+    const onMediaChange = () => {
+      previousScrollY = window.scrollY
+      setIsMobileHeaderHidden(false)
+    }
+
+    updateHeaderVisibility()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    mobileQuery.addEventListener("change", onMediaChange)
+
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      mobileQuery.removeEventListener("change", onMediaChange)
+    }
+  }, [isMenuOpen])
 
   useEffect(() => {
     const menu = menuRef.current
@@ -116,7 +161,11 @@ export function SiteHeader({ onOpenRegistration }: SiteHeaderProps) {
   }
 
   return (
-    <header className={`site-header ${isScrolled ? "is-scrolled" : ""} ${isMenuOpen ? "is-menu-open" : ""}`}>
+    <header
+      className={`site-header ${isScrolled ? "is-scrolled" : ""} ${isMenuOpen ? "is-menu-open" : ""} ${
+        isMobileHeaderHidden ? "is-hidden-mobile" : ""
+      }`}
+    >
       <div className="site-header__shell">
         <a className="site-header__brand" href="#inicio" aria-label="ONE Fiança Locatícia" onClick={(event) => handleAnchorClick(event, "#inicio")}>
           <img src="/logos/logo-one-wide.svg" alt="ONE Fiança Locatícia" />
