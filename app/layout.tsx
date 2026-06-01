@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "ONE Shield Preloader",
-  description: "Premium SVG logo preloader with a masked hero reveal.",
+  title: "ONE - Fiança Locatícia",
+  description: "Fiança locatícia moderna para contratos de aluguel com mais agilidade.",
 }
 
 export default function RootLayout({

@@ -67,24 +67,18 @@ const initialBrokerValues: BrokerFormValues = {
 }
 
 const steps = [
-  { number: 1, label: "Identificação" },
-  { number: 2, label: "Atuação" },
-  { number: 3, label: "Perfil" },
+  { number: 1, label: "Dados principais" },
+  { number: 2, label: "Atuação e CRECI" },
 ]
 
 const stepCopy = {
   1: {
-    title: "Identificação",
-    description: "Comece com seus dados profissionais como corretor.",
+    title: "Dados principais",
+    description: "Comece pelos dados de contato e identificação.",
   },
   2: {
-    title: "Onde você atua",
-    description: "Informe sua região de atuação e dados de vínculo.",
-    autonomousDescription: "Informe sua região principal de atuação.",
-  },
-  3: {
-    title: "Contato e perfil",
-    description: "Última etapa. Como entramos em contato e um pouco sobre sua atuação.",
+    title: "Atuação e CRECI",
+    description: "Finalize com seus dados profissionais obrigatórios e o aceite para envio.",
   },
 }
 
@@ -483,10 +477,7 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
     if (modalRef.current) modalRef.current.scrollTop = 0
   }, [currentStep, isSuccess])
 
-  const currentDescription = useMemo(() => {
-    if (currentStep === 2 && isAutonomous) return stepCopy[2].autonomousDescription
-    return stepCopy[currentStep as 1 | 2 | 3].description
-  }, [currentStep, isAutonomous])
+  const currentDescription = useMemo(() => stepCopy[currentStep as 1 | 2].description, [currentStep])
 
   const updateValue = <K extends keyof BrokerFormValues>(key: K, value: BrokerFormValues[K]) => {
     setValues((current) => {
@@ -503,32 +494,20 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
 
     if (step === 1) {
       const name = normalizeText(values.nome_completo)
-      const creci = values.creci.trim()
+      const whatsappDigits = onlyDigits(values.whatsapp)
       if (name.length < 2 || name.length > 220) nextErrors.nome_completo = "Informe o nome completo com 2 a 220 caracteres."
+      if (whatsappDigits.length < 10 || whatsappDigits.length > 13) nextErrors.whatsapp = "Informe um WhatsApp válido."
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email) || values.email.length > 255) nextErrors.email = "Informe um e-mail válido."
       if (!isValidCpf(values.cpf)) nextErrors.cpf = "Informe um CPF válido."
-      if (creci.length < 3 || creci.length > 40) nextErrors.creci = "Informe o CRECI com 3 a 40 caracteres."
       if (!values.tipo_corretor) nextErrors.tipo_corretor = "Selecione como você atua."
     }
 
     if (step === 2) {
+      const creci = values.creci.trim()
       const city = normalizeText(values.cidade)
-      const informedRealEstate = normalizeText(values.imobiliaria_informada)
-      if (!brazilUfs.includes(values.uf)) nextErrors.uf = "Selecione uma UF válida."
+      if (creci.length < 3 || creci.length > 40) nextErrors.creci = "Informe o CRECI com 3 a 40 caracteres."
       if (city.length < 2 || city.length > 120) nextErrors.cidade = "Informe uma cidade com 2 a 120 caracteres."
-      if (!isAutonomous && (informedRealEstate.length < 2 || informedRealEstate.length > 220)) {
-        nextErrors.imobiliaria_informada = "Informe o nome da imobiliária com 2 a 220 caracteres."
-      }
-    }
-
-    if (step === 3) {
-      const whatsappDigits = onlyDigits(values.whatsapp)
-      if (whatsappDigits.length < 10 || whatsappDigits.length > 13) nextErrors.whatsapp = "Informe um WhatsApp válido."
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email) || values.email.length > 255) {
-        nextErrors.email = "Informe um e-mail válido."
-      }
-      if (values.perfil_profissional.length > 500) {
-        nextErrors.perfil_profissional = "Use no máximo 500 caracteres."
-      }
+      if (!brazilUfs.includes(values.uf)) nextErrors.uf = "Selecione uma UF válida."
       if (!values.aceite_lgpd) nextErrors.aceite_lgpd = "O aceite LGPD é obrigatório para enviar."
     }
 
@@ -540,7 +519,7 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
     setArrowPulse((current) => current + 1)
     if (!validateStep()) return
     setCompletedStep((step) => Math.max(step, currentStep))
-    setCurrentStep((step) => Math.min(3, step + 1))
+    setCurrentStep((step) => Math.min(2, step + 1))
   }
 
   const goToStep = (step: number) => {
@@ -576,8 +555,8 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
   const continueSavedProgress = () => {
     if (!recoveryProgress) return
     setValues(recoveryProgress.values)
-    setCurrentStep(recoveryProgress.currentStep)
-    setCompletedStep(recoveryProgress.completedStep)
+    setCurrentStep(Math.min(2, Math.max(1, recoveryProgress.currentStep)))
+    setCompletedStep(Math.min(2, Math.max(0, recoveryProgress.completedStep)))
     setErrors({})
     setIsSuccess(false)
     setIsLoading(false)
@@ -626,7 +605,7 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
 
   const submitForm = async () => {
     setArrowPulse((current) => current + 1)
-    if (!validateStep(3)) return
+    if (!validateStep(2)) return
 
     setIsLoading(true)
     setErrors({})
@@ -690,8 +669,8 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
   const renderStep = () => {
     if (currentStep === 1) {
       return (
-        <div className="registration-fields registration-fields--broker-id">
-          <label className={fieldClass("nome_completo", "registration-field--full")}>
+        <div className="registration-fields registration-fields--single">
+          <label className={fieldClass("nome_completo")}>
             <span>Nome completo *</span>
             <input
               value={values.nome_completo}
@@ -700,6 +679,30 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
               autoComplete="name"
             />
             {renderFieldError("nome_completo")}
+          </label>
+
+          <label className={fieldClass("whatsapp")}>
+            <span>WhatsApp *</span>
+            <input
+              value={values.whatsapp}
+              onChange={(event) => updateValue("whatsapp", formatPhone(event.target.value))}
+              placeholder="(11) 99999-9999"
+              inputMode="tel"
+              autoComplete="tel"
+            />
+            {renderFieldError("whatsapp")}
+          </label>
+
+          <label className={fieldClass("email")}>
+            <span>E-mail *</span>
+            <input
+              value={values.email}
+              onChange={(event) => updateValue("email", event.target.value.slice(0, 255))}
+              placeholder="exemplo@email.com"
+              type="email"
+              autoComplete="email"
+            />
+            {renderFieldError("email")}
           </label>
 
           <label className={fieldClass("cpf")}>
@@ -713,23 +716,8 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
             {renderFieldError("cpf")}
           </label>
 
-          <label className={fieldClass("creci")}>
-            <span>CRECI *</span>
-            <input
-              value={values.creci}
-              onChange={(event) => updateValue("creci", event.target.value.slice(0, 40))}
-              placeholder="Ex: CRECI-SP 12345"
-            />
-            {renderFieldError("creci")}
-          </label>
-
-          <fieldset className={`registration-radio-group ${errors.tipo_corretor ? "has-error" : ""}`}>
-            <legend>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M7 10V8a5 5 0 0 1 10 0v2m-9 0h8m-11 0h14v9H5v-9Z" />
-              </svg>
-              Como você atua? *
-            </legend>
+          <fieldset className={`registration-radio-group registration-radio-group--single ${errors.tipo_corretor ? "has-error" : ""}`}>
+            <legend>Como você atua? *</legend>
             <div className="registration-radio-grid">
               {brokerTypeOptions.map((option) => {
                 const selected = values.tipo_corretor === option.value
@@ -755,134 +743,41 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
       )
     }
 
-    if (currentStep === 2) {
-      return (
-        <div className="registration-fields registration-fields--grouped">
-          <div className="registration-field-group">
-            <p className="registration-field-group__title">REGIÃO DE ATUAÇÃO</p>
-            <div className="registration-fields registration-fields--area">
-              <label className={fieldClass("uf", "registration-field--select")}>
-                <span>UF *</span>
-                <select value={values.uf} onChange={(event) => updateValue("uf", event.target.value)} aria-label="UF">
-                  <option value="">UF</option>
-                  {brazilUfs.map((uf) => (
-                    <option key={uf} value={uf}>
-                      {uf}
-                    </option>
-                  ))}
-                </select>
-                {renderFieldError("uf")}
-              </label>
-
-              <label className={fieldClass("cidade")}>
-                <span>Cidade *</span>
-                <input
-                  value={values.cidade}
-                  onChange={(event) => updateValue("cidade", event.target.value.slice(0, 120))}
-                  placeholder="Ex: São Paulo"
-                  autoComplete="address-level2"
-                />
-                {renderFieldError("cidade")}
-              </label>
-            </div>
-          </div>
-
-          {isAutonomous ? (
-            <div className="registration-info-block registration-info-block--success">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m6 12.5 4 4L18 8" />
-              </svg>
-              <div>
-                <strong>Cadastro como corretor autônomo</strong>
-                <p>
-                  Como você selecionou "Autônomo" no passo anterior, não é necessário vincular imobiliária. Você poderá
-                  fazer essa vinculação depois, caso queira.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="registration-field-group">
-              <p className="registration-field-group__title">IMOBILIÁRIA INFORMADA</p>
-              <label className={fieldClass("imobiliaria_informada", "registration-field--full")}>
-                <span>Imobiliária onde atua *</span>
-                <input
-                  value={values.imobiliaria_informada}
-                  onChange={(event) => updateValue("imobiliaria_informada", event.target.value.slice(0, 220))}
-                  placeholder="Ex: Imobiliária Central"
-                  autoComplete="organization"
-                />
-                <span className="registration-field__hint">
-                  Informe o nome da imobiliária onde você atua. Não é necessário que ela já esteja cadastrada na ONE.
-                </span>
-                {renderFieldError("imobiliaria_informada")}
-              </label>
-            </div>
-          )}
-        </div>
-      )
-    }
-
     return (
-      <div className="registration-profile">
-        <div className="registration-field-group">
-          <p className="registration-field-group__title">CONTATO</p>
-          <div className="registration-fields">
-            <label className={fieldClass("whatsapp")}>
-              <span>WhatsApp *</span>
-              <input
-                value={values.whatsapp}
-                onChange={(event) => updateValue("whatsapp", formatPhone(event.target.value))}
-                placeholder="(11) 99999-9999"
-                inputMode="tel"
-                autoComplete="tel"
-              />
-              {renderFieldError("whatsapp")}
-            </label>
+      <div className="registration-fields registration-fields--single">
+        <label className={fieldClass("creci")}>
+          <span>CRECI *</span>
+          <input
+            value={values.creci}
+            onChange={(event) => updateValue("creci", event.target.value.slice(0, 40))}
+            placeholder="Ex: CRECI-SP 12345"
+          />
+          {renderFieldError("creci")}
+        </label>
 
-            <label className={fieldClass("email")}>
-              <span>E-mail *</span>
-              <input
-                value={values.email}
-                onChange={(event) => updateValue("email", event.target.value.slice(0, 255))}
-                placeholder="exemplo@email.com"
-                type="email"
-                autoComplete="email"
-              />
-              {renderFieldError("email")}
-            </label>
-          </div>
-        </div>
+        <label className={fieldClass("cidade")}>
+          <span>Cidade *</span>
+          <input
+            value={values.cidade}
+            onChange={(event) => updateValue("cidade", event.target.value.slice(0, 120))}
+            placeholder="Ex: São Paulo"
+            autoComplete="address-level2"
+          />
+          {renderFieldError("cidade")}
+        </label>
 
-        <div className="registration-field-group">
-          <p className="registration-field-group__title">
-            PERFIL PROFISSIONAL <span>opcional</span>
-          </p>
-          <label className={fieldClass("perfil_profissional", "registration-field--full")}>
-            <span>Conte um pouco sobre sua atuação</span>
-            <textarea
-              value={values.perfil_profissional}
-              onChange={(event) => updateValue("perfil_profissional", event.target.value.slice(0, 500))}
-              placeholder="Ex: Atuo há 8 anos com locações residenciais na zona sul de São Paulo, com foco em imóveis de alto padrão."
-            />
-            {renderFieldError("perfil_profissional")}
-          </label>
-
-          <fieldset className="registration-volume">
-            <legend>Volume médio de indicações por mês</legend>
-            <div className="registration-volume__options">
-              {volumeOptions.map((option) => (
-                <button
-                  className={`registration-volume__option ${values.volume_indicacoes === option.value ? "is-selected" : ""}`}
-                  key={option.value}
-                  type="button"
-                  onClick={() => updateValue("volume_indicacoes", option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-        </div>
+        <label className={fieldClass("uf", "registration-field--select")}>
+          <span>UF *</span>
+          <select value={values.uf} onChange={(event) => updateValue("uf", event.target.value)} aria-label="UF">
+            <option value="">Selecione</option>
+            {brazilUfs.map((uf) => (
+              <option key={uf} value={uf}>
+                {uf}
+              </option>
+            ))}
+          </select>
+          {renderFieldError("uf")}
+        </label>
 
         <div className="registration-checks">
           <label className={`registration-check ${errors.aceite_lgpd ? "has-error" : ""}`}>
@@ -892,8 +787,7 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
               type="checkbox"
             />
             <span>
-              Declaro que as informações fornecidas são verdadeiras e autorizo a ONE Fiança Locatícia a utilizar meus dados
-              para análise do cadastro, contato comercial e elaboração de proposta de parceria, conforme a{" "}
+              Declaro que as informações fornecidas são verdadeiras e autorizo a ONE Fiança Locatícia a utilizar meus dados para análise do cadastro, contato comercial e elaboração de proposta de parceria, conforme a{" "}
               <a href="/politica-de-privacidade" target="_blank" rel="noopener noreferrer">
                 Política de Privacidade
               </a>
@@ -901,15 +795,6 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
             </span>
           </label>
           {renderFieldError("aceite_lgpd")}
-
-          <label className="registration-check">
-            <input
-              checked={values.opt_in_marketing}
-              onChange={(event) => updateValue("opt_in_marketing", event.target.checked)}
-              type="checkbox"
-            />
-            <span>Aceito receber comunicações da ONE Fiança Locatícia por WhatsApp, e-mail ou telefone.</span>
-          </label>
         </div>
       </div>
     )
@@ -978,7 +863,7 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
                       transition={{ duration: 0.28, ease: "easeInOut" }}
                     >
                       <div className="registration-step__header">
-                        <h2 id={titleId}>{stepCopy[currentStep as 1 | 2 | 3].title}</h2>
+                        <h2 id={titleId}>{stepCopy[currentStep as 1 | 2].title}</h2>
                         <p>{currentDescription}</p>
                       </div>
 
@@ -998,7 +883,7 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
                       <span aria-hidden="true" />
                     )}
 
-                    {currentStep < 3 ? (
+                    {currentStep < 2 ? (
                       <button className="registration-button registration-button--primary" type="button" onClick={advanceStep}>
                         Continuar
                         <ArrowIcon pulseKey={arrowPulse} />
@@ -1008,7 +893,7 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
                         ref={submitButtonRef}
                         className={`registration-button registration-button--primary ${isLoading ? "is-loading" : ""}`}
                         type="button"
-                        disabled={isLoading || isExpanding || !values.aceite_lgpd}
+                        disabled={isLoading || isExpanding}
                         onClick={submitForm}
                       >
                         {isLoading ? (

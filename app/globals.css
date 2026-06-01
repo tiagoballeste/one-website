@@ -1166,8 +1166,10 @@ main {
 }
 
 .registration-stepper {
+  --registration-stepper-dot-size: clamp(42px, 4.8vw, 54px);
+  --registration-stepper-line-gap: clamp(10px, 1.8vw, 18px);
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: clamp(14px, 3vw, 34px);
   margin: 0 0 clamp(18px, 3.2svh, 34px);
   padding: 0;
@@ -1186,8 +1188,8 @@ main {
 
 .registration-stepper__dot {
   display: grid;
-  width: clamp(42px, 4.8vw, 54px);
-  height: clamp(42px, 4.8vw, 54px);
+  width: var(--registration-stepper-dot-size);
+  height: var(--registration-stepper-dot-size);
   place-items: center;
   border: 1px solid rgba(10, 30, 102, 0.48);
   border-radius: 50%;
@@ -1244,9 +1246,10 @@ main {
 
 .registration-stepper__line {
   position: absolute;
-  top: clamp(21px, 2.4vw, 27px);
-  left: calc(50% + clamp(36px, 5vw, 56px));
-  width: min(112px, 42%);
+  top: calc(var(--registration-stepper-dot-size) / 2);
+  right: calc(-50% + (var(--registration-stepper-dot-size) / 2) + var(--registration-stepper-line-gap));
+  left: calc(50% + (var(--registration-stepper-dot-size) / 2) + var(--registration-stepper-line-gap));
+  width: auto;
   height: 1px;
   background: rgba(10, 30, 102, 0.4);
 }
@@ -1282,6 +1285,19 @@ main {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(12px, 2.1svh, 24px) clamp(24px, 4.5vw, 52px);
+}
+
+.registration-fields--single {
+  grid-template-columns: 1fr;
+  gap: clamp(12px, 1.9svh, 18px);
+}
+
+.registration-field em {
+  color: rgba(10, 30, 102, 0.42);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .registration-field {
@@ -2034,6 +2050,10 @@ main {
   gap: clamp(10px, 1.8vw, 14px);
 }
 
+.registration-radio-group--single .registration-radio-grid {
+  grid-template-columns: 1fr;
+}
+
 .registration-radio-card {
   display: grid;
   grid-template-columns: 18px 1fr;
@@ -2345,6 +2365,13 @@ main {
 .registration-modal--broker .registration-check input {
   width: 20px;
   height: 20px;
+}
+
+.registration-modal--broker .registration-check input:checked::after {
+  top: 2px;
+  left: 5px;
+  width: 6px;
+  height: 10px;
 }
 
 .registration-modal--broker .registration-modal__footer {
@@ -6431,13 +6458,15 @@ main {
   }
 
   .registration-stepper {
+    --registration-stepper-dot-size: clamp(36px, 10vw, 42px);
+    --registration-stepper-line-gap: 10px;
     gap: 8px;
     margin-bottom: clamp(14px, 2.8svh, 22px);
   }
 
   .registration-stepper__dot {
-    width: clamp(36px, 10vw, 42px);
-    height: clamp(36px, 10vw, 42px);
+    width: var(--registration-stepper-dot-size);
+    height: var(--registration-stepper-dot-size);
     font-size: 19px;
   }
 
@@ -6446,9 +6475,10 @@ main {
   }
 
   .registration-stepper__line {
-    top: 21px;
-    left: calc(50% + 34px);
-    width: min(54px, 35%);
+    top: calc(var(--registration-stepper-dot-size) / 2);
+    right: calc(-50% + (var(--registration-stepper-dot-size) / 2) + var(--registration-stepper-line-gap));
+    left: calc(50% + (var(--registration-stepper-dot-size) / 2) + var(--registration-stepper-line-gap));
+    width: auto;
   }
 
   .registration-step {
@@ -6911,6 +6941,7 @@ main {
   }
 
   .registration-stepper {
+    --registration-stepper-dot-size: clamp(36px, 4.4vw, 46px);
     margin-bottom: clamp(10px, 2svh, 18px);
   }
 
@@ -6919,8 +6950,8 @@ main {
   }
 
   .registration-stepper__dot {
-    width: clamp(36px, 4.4vw, 46px);
-    height: clamp(36px, 4.4vw, 46px);
+    width: var(--registration-stepper-dot-size);
+    height: var(--registration-stepper-dot-size);
     font-size: clamp(18px, 2vw, 22px);
   }
 
@@ -6929,7 +6960,7 @@ main {
   }
 
   .registration-stepper__line {
-    top: clamp(18px, 2.2vw, 23px);
+    top: calc(var(--registration-stepper-dot-size) / 2);
   }
 
   .registration-step__header {
@@ -7023,13 +7054,14 @@ main {
     padding-bottom: clamp(8px, 1.8svh, 14px);
   }
 
-  .registration-modal--broker .registration-stepper__dot {
-    width: clamp(34px, 4vw, 42px);
-    height: clamp(34px, 4vw, 42px);
+  .registration-modal--broker .registration-stepper {
+    --registration-stepper-dot-size: clamp(34px, 4vw, 42px);
+    margin-bottom: clamp(7px, 1.4svh, 14px);
   }
 
-  .registration-modal--broker .registration-stepper {
-    margin-bottom: clamp(7px, 1.4svh, 14px);
+  .registration-modal--broker .registration-stepper__dot {
+    width: var(--registration-stepper-dot-size);
+    height: var(--registration-stepper-dot-size);
   }
 
   .registration-modal--broker .registration-fields {
@@ -7099,12 +7131,14 @@ main {
   }
 
   .registration-stepper {
+    --registration-stepper-dot-size: 34px;
+    --registration-stepper-line-gap: 8px;
     margin-bottom: 10px;
   }
 
   .registration-stepper__dot {
-    width: 34px;
-    height: 34px;
+    width: var(--registration-stepper-dot-size);
+    height: var(--registration-stepper-dot-size);
     font-size: 17px;
   }
 
@@ -7113,8 +7147,10 @@ main {
   }
 
   .registration-stepper__line {
-    top: 17px;
-    left: calc(50% + 28px);
+    top: calc(var(--registration-stepper-dot-size) / 2);
+    right: calc(-50% + (var(--registration-stepper-dot-size) / 2) + var(--registration-stepper-line-gap));
+    left: calc(50% + (var(--registration-stepper-dot-size) / 2) + var(--registration-stepper-line-gap));
+    width: auto;
   }
 
   .registration-step__header {

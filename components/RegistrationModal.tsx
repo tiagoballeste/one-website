@@ -100,26 +100,18 @@ const initialValues: FormValues = {
 }
 
 const steps = [
-  { number: 1, label: "Dados" },
-  { number: 2, label: "Contato" },
-  { number: 3, label: "Perfil" },
+  { number: 1, label: "Dados principais" },
+  { number: 2, label: "Endereço e responsável" },
 ]
 
 const stepCopy = {
   1: {
-    title: "Dados da imobiliária",
-    description: "Comece com as informações básicas da empresa.",
-    badge: "STEP 1 · DADOS DA IMOBILIÁRIA",
+    title: "Dados principais",
+    description: "Informe os dados essenciais e os canais de contato da imobiliária.",
   },
   2: {
-    title: "Contato e responsável",
-    description: "Informe canais de contato e quem será o ponto focal da parceria.",
-    badge: "STEP 2 · CONTATO E RESPONSÁVEL",
-  },
-  3: {
-    title: "Perfil e envio",
-    description: "Última etapa. Ajuda nossa equipe a entender melhor o perfil da imobiliária.",
-    badge: "STEP 3 · PERFIL E ENVIO",
+    title: "Endereço e responsável",
+    description: "Complete o endereço principal e indique quem será o ponto focal da parceria.",
   },
 }
 
@@ -608,10 +600,10 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
           if (!canAutofill) return current
 
           lastAutofilledAddressRef.current = address
-          return { ...current, endereco: address }
+          return { ...current, endereco: address, ufDraft: data.state || current.ufDraft, cityDraft: data.city || current.cityDraft }
         })
         setCepMessage(address ? "Endereço sugerido pelo CEP. Você pode editar antes de continuar." : "")
-        setErrors((current) => ({ ...current, endereco: undefined, submit: undefined }))
+        setErrors((current) => ({ ...current, cepDraft: undefined, endereco: undefined, ufDraft: undefined, cityDraft: undefined, submit: undefined }))
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return
         setCepMessage("Não encontramos esse CEP. Preencha o endereço manualmente.")
@@ -713,26 +705,25 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
     if (step === 1) {
       const razao = normalizeText(values.razao_social)
       const fantasia = normalizeText(values.nome_fantasia)
-      if (razao.length < 2 || razao.length > 220) nextErrors.razao_social = "Informe a razão social com 2 a 220 caracteres."
+      const whatsappDigits = onlyDigits(values.whatsapp)
+      if (razao.length < 2 || razao.length > 220) nextErrors.razao_social = "Informe a razao social com 2 a 220 caracteres."
       if (fantasia.length < 2 || fantasia.length > 220) nextErrors.nome_fantasia = "Informe o nome fantasia com 2 a 220 caracteres."
       if (!isValidCnpj(values.cnpj)) nextErrors.cnpj = "Informe um CNPJ válido."
-      if (normalizeText(values.endereco).length < 5) nextErrors.endereco = "Informe um endereço com pelo menos 5 caracteres."
-      if (!values.cidades_ufs_atuacao.length) nextErrors.cidades_ufs_atuacao = "Adicione pelo menos uma cidade de atuação."
+      if (whatsappDigits.length < 10 || whatsappDigits.length > 13) nextErrors.whatsapp = "Informe um WhatsApp válido."
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email) || values.email.length > 255) nextErrors.email = "Informe um e-mail válido."
     }
 
     if (step === 2) {
       const responsavel = normalizeText(values.responsavel_principal)
       const cargo = normalizeText(values.cargo_responsavel)
-      const whatsappDigits = onlyDigits(values.whatsapp)
+      const cidade = normalizeText(values.cityDraft)
+      const cepDigits = onlyDigits(values.cepDraft)
+      if (cepDigits.length !== 8) nextErrors.cepDraft = "Informe um CEP válido."
       if (responsavel.length < 2 || responsavel.length > 200) nextErrors.responsavel_principal = "Informe o nome completo."
       if (cargo.length < 2 || cargo.length > 120) nextErrors.cargo_responsavel = "Informe o cargo."
-      if (whatsappDigits.length < 10 || whatsappDigits.length > 13) nextErrors.whatsapp = "Informe um WhatsApp válido."
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email) || values.email.length > 255) nextErrors.email = "Informe um e-mail válido."
-      if (values.site && normalizeUrl(values.site).length > 300) nextErrors.site = "Informe um site com até 300 caracteres."
-      if (values.instagram && normalizeInstagram(values.instagram).length > 120) nextErrors.instagram = "Informe um Instagram com até 120 caracteres."
-    }
-
-    if (step === 3) {
+      if (normalizeText(values.endereco).length < 5) nextErrors.endereco = "Informe um endereço com pelo menos 5 caracteres."
+      if (cidade.length < 2 || cidade.length > 120) nextErrors.cityDraft = "Informe a cidade principal."
+      if (!values.ufDraft) nextErrors.ufDraft = "Selecione a UF."
       if (!values.aceite_lgpd) nextErrors.aceite_lgpd = "O aceite LGPD é obrigatório para enviar."
     }
 
@@ -744,7 +735,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
     setArrowPulse((current) => current + 1)
     if (!validateStep()) return
     setCompletedStep((step) => Math.max(step, currentStep))
-    setCurrentStep((step) => Math.min(3, step + 1))
+    setCurrentStep((step) => Math.min(2, step + 1))
   }
 
   const goToStep = (step: number) => {
@@ -780,8 +771,8 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
   const continueSavedProgress = () => {
     if (!recoveryProgress) return
     setValues(recoveryProgress.values)
-    setCurrentStep(recoveryProgress.currentStep)
-    setCompletedStep(recoveryProgress.completedStep)
+    setCurrentStep(Math.min(2, Math.max(1, recoveryProgress.currentStep)))
+    setCompletedStep(Math.min(2, Math.max(0, recoveryProgress.completedStep)))
     setErrors({})
     setIsSuccess(false)
     setIsLoading(false)
@@ -802,7 +793,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
       nome_fantasia: normalizeText(values.nome_fantasia),
       cnpj: onlyDigits(values.cnpj),
       endereco: normalizeText(values.endereco),
-      cidades_ufs_atuacao: values.cidades_ufs_atuacao,
+      cidades_ufs_atuacao: [{ cidade: toDisplayCity(normalizeText(values.cityDraft)), uf: values.ufDraft }],
       responsavel_principal: normalizeText(values.responsavel_principal),
       cargo_responsavel: normalizeText(values.cargo_responsavel),
       whatsapp: normalizeWhatsapp(values.whatsapp),
@@ -840,7 +831,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
 
   const submitForm = async () => {
     setArrowPulse((current) => current + 1)
-    if (!validateStep(3) || isLoading || isExpanding) return
+    if (!validateStep(2) || isLoading || isExpanding) return
 
     setIsLoading(true)
     setErrors({})
@@ -881,7 +872,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
       }
 
       window.localStorage.removeItem(PROGRESS_KEY)
-      setCompletedStep(3)
+      setCompletedStep(2)
       showSuccessExpansion()
     } catch (error) {
       setErrors({ submit: error instanceof Error ? error.message : "Erro ao enviar. Tente novamente em alguns instantes." })
@@ -903,7 +894,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
   const renderStep = () => {
     if (currentStep === 1) {
       return (
-        <div className="registration-fields registration-fields--company">
+        <div className="registration-fields registration-fields--single">
           <label className={fieldClass("razao_social")}>
             <span>Razão social *</span>
             <input
@@ -937,230 +928,123 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
             {renderFieldError("cnpj")}
           </label>
 
-          <label className="registration-field">
-            <span>CEP</span>
+          <label className={fieldClass("whatsapp")}>
+            <span>WhatsApp *</span>
             <input
-              value={values.cepDraft}
-              onChange={(event) => updateValue("cepDraft", formatCep(event.target.value))}
-              placeholder="00000-000"
-              inputMode="numeric"
-              autoComplete="postal-code"
+              value={values.whatsapp}
+              onChange={(event) => updateValue("whatsapp", formatPhone(event.target.value))}
+              placeholder="(11) 99999-9999"
+              inputMode="tel"
+              autoComplete="tel"
             />
-            <span className="registration-field__hint">
-              {isCepLoading ? "Buscando endereço..." : cepMessage || "Opcional. Use para preencher o endereço automaticamente."}
-            </span>
+            {renderFieldError("whatsapp")}
           </label>
 
-          <label className={fieldClass("endereco")}>
-            <span>Endereço *</span>
+          <label className={fieldClass("email")}>
+            <span>E-mail *</span>
             <input
-              value={values.endereco}
-              onChange={(event) => updateValue("endereco", event.target.value)}
-              placeholder="Rua, número, bairro, cidade"
-              autoComplete="street-address"
+              value={values.email}
+              onChange={(event) => updateValue("email", event.target.value.slice(0, 255))}
+              placeholder="contato@imobiliaria.com.br"
+              type="email"
+              autoComplete="email"
             />
-            {renderFieldError("endereco")}
+            {renderFieldError("email")}
           </label>
-
-          <div className={`registration-city-manager ${errors.cidades_ufs_atuacao ? "has-error" : ""}`}>
-            <div className="registration-city-manager__title">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 21s7-5.1 7-11a7 7 0 0 0-14 0c0 5.9 7 11 7 11Zm0-8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-              </svg>
-              <span>Cidades de atuação *</span>
-            </div>
-
-            <div className="registration-city-manager__inputs">
-              <label className="registration-field registration-field--select">
-                <span className="sr-only">UF</span>
-                <select
-                  value={values.ufDraft}
-                  onChange={(event) => {
-                    updateValue("ufDraft", event.target.value)
-                    updateValue("cityDraft", "")
-                  }}
-                  disabled={isStatesLoading}
-                  aria-label="UF"
-                >
-                  <option value="">{isStatesLoading ? "..." : "UF"}</option>
-                  {brazilStates.map((state) => (
-                    <option key={state.id} value={state.sigla}>
-                      {state.sigla}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="registration-field registration-city-manager__city">
-                <span className="sr-only">Cidade</span>
-                <input
-                  value={values.cityDraft}
-                  onChange={(event) => updateValue("cityDraft", event.target.value)}
-                  list={values.ufDraft ? cityListId : undefined}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault()
-                      addCity()
-                    }
-                  }}
-                  placeholder={
-                    !values.ufDraft ? "Selecione a UF primeiro" : isCitiesLoading ? "Carregando cidades..." : "Digite a cidade..."
-                  }
-                  disabled={!values.ufDraft}
-                />
-                {values.ufDraft && (
-                  <datalist id={cityListId}>
-                    {citySuggestions.map((city) => (
-                      <option key={`${city.codigo_ibge}-${city.nome}`} value={city.nome} />
-                    ))}
-                  </datalist>
-                )}
-              </label>
-
-              <button className="registration-city-manager__add" type="button" onClick={addCity} disabled={!values.ufDraft}>
-                + Adicionar
-              </button>
-            </div>
-
-            {values.cidades_ufs_atuacao.length > 0 && (
-              <div className="registration-city-manager__chips" aria-label="Cidades adicionadas">
-                {values.cidades_ufs_atuacao.map((city) => (
-                  <button
-                    className="registration-chip"
-                    key={`${city.cidade}-${city.uf}`}
-                    type="button"
-                    onClick={() => removeCity(city)}
-                    aria-label={`Remover ${city.cidade} - ${city.uf}`}
-                  >
-                    {city.cidade} - {city.uf}
-                    <span aria-hidden="true">×</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <span className="registration-field__hint">
-              {values.cidades_ufs_atuacao.length} {values.cidades_ufs_atuacao.length === 1 ? "cidade adicionada" : "cidades adicionadas"}. Adicione pelo menos 1.
-            </span>
-            {statesError && <span className="registration-field__hint">{statesError}</span>}
-            {citiesError && <span className="registration-field__hint">{citiesError}</span>}
-            {renderFieldError("cidades_ufs_atuacao")}
-          </div>
-        </div>
-      )
-    }
-
-    if (currentStep === 2) {
-      return (
-        <div className="registration-fields registration-fields--grouped">
-          <div className="registration-field-group">
-            <p className="registration-field-group__title">RESPONSÁVEL</p>
-            <div className="registration-fields">
-              <label className={fieldClass("responsavel_principal")}>
-                <span>Nome completo *</span>
-                <input
-                  value={values.responsavel_principal}
-                  onChange={(event) => updateValue("responsavel_principal", event.target.value.slice(0, 200))}
-                  placeholder="Ex: João da Silva"
-                  autoComplete="name"
-                />
-                {renderFieldError("responsavel_principal")}
-              </label>
-
-              <label className={fieldClass("cargo_responsavel")}>
-                <span>Cargo *</span>
-                <input
-                  value={values.cargo_responsavel}
-                  onChange={(event) => updateValue("cargo_responsavel", event.target.value.slice(0, 120))}
-                  placeholder="Ex: Diretor Comercial"
-                />
-                {renderFieldError("cargo_responsavel")}
-              </label>
-            </div>
-          </div>
-
-          <div className="registration-field-group">
-            <p className="registration-field-group__title">CONTATO</p>
-            <div className="registration-fields">
-              <label className={fieldClass("whatsapp")}>
-                <span>WhatsApp *</span>
-                <input
-                  value={values.whatsapp}
-                  onChange={(event) => updateValue("whatsapp", formatPhone(event.target.value))}
-                  placeholder="(11) 99999-9999"
-                  inputMode="tel"
-                  autoComplete="tel"
-                />
-                {renderFieldError("whatsapp")}
-              </label>
-
-              <label className={fieldClass("email")}>
-                <span>E-mail *</span>
-                <input
-                  value={values.email}
-                  onChange={(event) => updateValue("email", event.target.value.slice(0, 255))}
-                  placeholder="contato@imobiliaria.com.br"
-                  type="email"
-                  autoComplete="email"
-                />
-                {renderFieldError("email")}
-              </label>
-            </div>
-          </div>
-
-          <div className="registration-field-group">
-            <p className="registration-field-group__title">
-              PRESENÇA DIGITAL <span>opcional</span>
-            </p>
-            <div className="registration-fields">
-              <label className={fieldClass("site")}>
-                <span>Site</span>
-                <input
-                  value={values.site}
-                  onChange={(event) => updateValue("site", event.target.value.slice(0, 300))}
-                  onBlur={() => updateValue("site", normalizeUrl(values.site))}
-                  placeholder="https://imobiliaria.com.br"
-                  inputMode="url"
-                />
-                {renderFieldError("site")}
-              </label>
-
-              <label className={fieldClass("instagram")}>
-                <span>Instagram</span>
-                <input
-                  value={values.instagram}
-                  onChange={(event) => updateValue("instagram", event.target.value.slice(0, 120))}
-                  onBlur={() => updateValue("instagram", normalizeInstagram(values.instagram))}
-                  placeholder="@imobiliaria"
-                />
-                {renderFieldError("instagram")}
-              </label>
-            </div>
-          </div>
         </div>
       )
     }
 
     return (
-      <div className="registration-profile">
-        <fieldset className="registration-volume">
-          <legend>
-            Média de locações por mês <span>opcional</span>
-          </legend>
-          <div className="registration-volume__options">
-            {volumeOptions.map((option) => (
-              <button
-                className={`registration-volume__option ${values.media_locacoes_mes === option.value ? "is-selected" : ""}`}
-                key={option.value}
-                type="button"
-                onClick={() => updateValue("media_locacoes_mes", option.value)}
-              >
-                {option.label}
-              </button>
+      <div className="registration-fields registration-fields--single">
+        <label className={fieldClass("cepDraft")}>
+          <span>CEP *</span>
+          <input
+            value={values.cepDraft}
+            onChange={(event) => updateValue("cepDraft", formatCep(event.target.value))}
+            placeholder="00000-000"
+            inputMode="numeric"
+            autoComplete="postal-code"
+          />
+          <span className="registration-field__hint">
+            {isCepLoading ? "Buscando endereço..." : cepMessage || "Use para preencher o endereço automaticamente. Você pode editar depois."}
+          </span>
+          {renderFieldError("cepDraft")}
+        </label>
+
+        <label className={fieldClass("responsavel_principal")}>
+          <span>Responsável principal *</span>
+          <input
+            value={values.responsavel_principal}
+            onChange={(event) => updateValue("responsavel_principal", event.target.value.slice(0, 200))}
+            placeholder="Ex: João da Silva"
+            autoComplete="name"
+          />
+          {renderFieldError("responsavel_principal")}
+        </label>
+
+        <label className={fieldClass("cargo_responsavel")}>
+          <span>Cargo do responsável *</span>
+          <input
+            value={values.cargo_responsavel}
+            onChange={(event) => updateValue("cargo_responsavel", event.target.value.slice(0, 120))}
+            placeholder="Ex: Diretor comercial"
+          />
+          {renderFieldError("cargo_responsavel")}
+        </label>
+
+        <label className={fieldClass("endereco")}>
+          <span>Endereço *</span>
+          <input
+            value={values.endereco}
+            onChange={(event) => updateValue("endereco", event.target.value)}
+            placeholder="Rua, número e bairro"
+            autoComplete="street-address"
+          />
+          {renderFieldError("endereco")}
+        </label>
+
+        <label className={fieldClass("cityDraft")}>
+          <span>Cidade principal *</span>
+          <input
+            value={values.cityDraft}
+            onChange={(event) => updateValue("cityDraft", event.target.value)}
+            list={values.ufDraft ? cityListId : undefined}
+            placeholder={values.ufDraft && isCitiesLoading ? "Carregando cidades..." : "Ex: São Paulo"}
+            autoComplete="address-level2"
+          />
+          {values.ufDraft && (
+            <datalist id={cityListId}>
+              {citySuggestions.map((city) => (
+                <option key={`${city.codigo_ibge}-${city.nome}`} value={city.nome} />
+              ))}
+            </datalist>
+          )}
+          {citiesError && <span className="registration-field__hint">{citiesError}</span>}
+          {renderFieldError("cityDraft")}
+        </label>
+
+        <label className={fieldClass("ufDraft", "registration-field--select")}>
+          <span>UF *</span>
+          <select
+            value={values.ufDraft}
+            onChange={(event) => {
+              updateValue("ufDraft", event.target.value)
+              updateValue("cityDraft", "")
+            }}
+            disabled={isStatesLoading}
+            aria-label="UF"
+          >
+            <option value="">{isStatesLoading ? "..." : "Selecione"}</option>
+            {brazilStates.map((state) => (
+              <option key={state.id} value={state.sigla}>
+                {state.sigla}
+              </option>
             ))}
-          </div>
-          <span className="registration-field__hint">Será enviado como número médio.</span>
-        </fieldset>
+          </select>
+          {statesError && <span className="registration-field__hint">{statesError}</span>}
+          {renderFieldError("ufDraft")}
+        </label>
 
         <div className="registration-checks">
           <label className={`registration-check ${errors.aceite_lgpd ? "has-error" : ""}`}>
@@ -1178,15 +1062,6 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
             </span>
           </label>
           {renderFieldError("aceite_lgpd")}
-
-          <label className="registration-check">
-            <input
-              checked={values.opt_in_marketing}
-              onChange={(event) => updateValue("opt_in_marketing", event.target.checked)}
-              type="checkbox"
-            />
-            <span>Aceito receber comunicações da ONE Fiança Locatícia por WhatsApp, e-mail ou telefone.</span>
-          </label>
         </div>
       </div>
     )
@@ -1255,8 +1130,8 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
                       transition={{ duration: 0.28, ease: "easeInOut" }}
                     >
                       <div className="registration-step__header">
-                        <h2 id={titleId}>{stepCopy[currentStep as 1 | 2 | 3].title}</h2>
-                        <p>{stepCopy[currentStep as 1 | 2 | 3].description}</p>
+                        <h2 id={titleId}>{stepCopy[currentStep as 1 | 2].title}</h2>
+                        <p>{stepCopy[currentStep as 1 | 2].description}</p>
                       </div>
 
                       {renderStep()}
@@ -1275,7 +1150,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
                       <span aria-hidden="true" />
                     )}
 
-                    {currentStep < 3 ? (
+                    {currentStep < 2 ? (
                       <button className="registration-button registration-button--primary" type="button" onClick={advanceStep}>
                         Continuar
                         <ArrowIcon pulseKey={arrowPulse} />
@@ -1285,7 +1160,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
                         ref={submitButtonRef}
                         className={`registration-button registration-button--primary ${isLoading ? "is-loading" : ""}`}
                         type="button"
-                        disabled={isLoading || isExpanding || !values.aceite_lgpd}
+                        disabled={isLoading || isExpanding}
                         onClick={submitForm}
                       >
                         {isLoading ? (
