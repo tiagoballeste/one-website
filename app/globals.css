@@ -2501,9 +2501,12 @@ main {
 
 .positioning-section__cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 30px 26px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 1080px);
+  gap: clamp(24px, 2.4vw, 34px);
   margin-top: clamp(52px, 4.4vw, 72px);
+  margin-right: auto;
+  margin-left: auto;
 }
 
 .positioning-card {
@@ -3025,7 +3028,7 @@ main {
 .products-stack {
   --products-card-step: clamp(14px, 1.2vw, 22px);
   position: relative;
-  margin-top: clamp(62px, 5.8vw, 92px);
+  margin-top: clamp(42px, 4vw, 64px);
   height: calc(var(--products-count) * 100vh);
 }
 
@@ -4069,10 +4072,10 @@ main {
   grid-template-columns: 14px minmax(0, 1fr);
   gap: 22px;
   align-items: center;
-  min-height: clamp(48px, 3.8vw, 62px);
+  min-height: clamp(52px, 4vw, 66px);
   color: rgba(231, 234, 250, 0.9);
-  font-size: clamp(19px, 1.38vw, 26px);
-  line-height: 1.18;
+  font-size: clamp(20px, 1.46vw, 27px);
+  line-height: 1.22;
   letter-spacing: -0.04em;
 }
 
@@ -5695,16 +5698,19 @@ main {
 
   .products-stack {
     --products-card-step: clamp(7px, 2.2vw, 10px);
-    margin-top: 48px;
-    height: calc(var(--products-count) * 100svh);
+    --products-mobile-card-height: clamp(420px, 68svh, 560px);
+    --products-mobile-sticky-span: 84svh;
+    margin-top: 34px;
+    height: calc((var(--products-count) * var(--products-mobile-sticky-span)) + (100svh - var(--products-mobile-sticky-span)));
   }
 
   .products-card-sticky {
-    height: 100svh;
+    top: calc((100svh - var(--products-mobile-sticky-span)) / 2);
+    height: var(--products-mobile-sticky-span);
   }
 
   .products-card {
-    height: min(68svh, 560px);
+    height: var(--products-mobile-card-height);
     min-height: 420px;
     border-radius: 16px;
   }
@@ -6133,9 +6139,9 @@ main {
   .documentation-card__list li {
     grid-template-columns: 8px minmax(0, 1fr);
     gap: 12px;
-    min-height: 25px;
-    font-size: clamp(11.5px, 3.1vw, 13px);
-    line-height: 1.22;
+    min-height: 34px;
+    font-size: clamp(14px, 3.8vw, 16px);
+    line-height: 1.3;
   }
 
   .documentation-card__list li::before {
@@ -6746,14 +6752,25 @@ main {
   }
 
   .for-whom-cards,
-  .products-stack,
   .documentation-cards {
     margin-top: var(--one-mobile-content-gap);
+  }
+
+  .products-stack {
+    margin-top: clamp(-92px, -10svh, -64px);
+  }
+
+  .products-section__inner {
+    padding-bottom: clamp(28px, 8vw, 42px);
   }
 
   .coverages-section__layout,
   .partnership-hero {
     gap: var(--one-mobile-content-gap);
+  }
+
+  .coverages-section {
+    margin-top: clamp(-128px, -14svh, -96px);
   }
 
   .trust-section__inner {
@@ -6846,11 +6863,17 @@ main {
   .coverages-list__content p,
   .partnership-benefit,
   .partnership-commission__content p,
-  .documentation-card__list li,
   .faq-accordion__answer p,
   .how-it-works-step__card p {
     font-size: var(--one-mobile-card-copy);
     line-height: 1.34;
+    letter-spacing: -0.02em;
+  }
+
+  .documentation-card__list li {
+    min-height: 34px;
+    font-size: clamp(14px, 3.8vw, 16px);
+    line-height: 1.3;
     letter-spacing: -0.02em;
   }
 
