@@ -1,0 +1,45 @@
+services:
+  one-website:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: one-website
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    expose:
+      - "3000"
+    ports:
+      - "127.0.0.1:3001:3000"
+    networks:
+      - one_site
+      - one_backend_public
+
+  one-caddy:
+    image: caddy:2-alpine
+    container_name: one-caddy
+    restart: unless-stopped
+    depends_on:
+      - one-website
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - one_site
+
+networks:
+  one_site:
+    driver: bridge
+
+  one_backend_public:
+    external: true
+    name: one-fianca-backend_one_public
+
+volumes:
+  caddy_data:
+  caddy_config:

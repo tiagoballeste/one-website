@@ -38,6 +38,16 @@ export async function GET(request: NextRequest) {
       ? await response.json().catch(() => ({}))
       : { message: await response.text().catch(() => "") }
 
+    if ([404, 405, 422].includes(response.status)) {
+      return NextResponse.json(
+        {
+          results: [],
+          message: "Busca de imobiliárias ainda não disponível no backend.",
+        },
+        { status: 200 },
+      )
+    }
+
     return NextResponse.json(body, { status: response.status })
   } catch (error) {
     const isTimeout = error instanceof DOMException && error.name === "AbortError"

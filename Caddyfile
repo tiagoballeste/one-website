@@ -1,0 +1,5 @@
+onefiancalocaticia.com.br, www.onefiancalocaticia.com.br {
+    encode zstd gzip
+
+    reverse_proxy one-website:3000
+}
