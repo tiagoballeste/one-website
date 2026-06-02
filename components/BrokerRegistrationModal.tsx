@@ -78,7 +78,7 @@ const stepCopy = {
   },
   2: {
     title: "Atuação e CRECI",
-    description: "Finalize com seus dados profissionais obrigatórios e o aceite para envio.",
+    description: "Finalize com seus dados profissionais opcionais e o aceite para envio.",
   },
 }
 
@@ -505,9 +505,9 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
     if (step === 2) {
       const creci = values.creci.trim()
       const city = normalizeText(values.cidade)
-      if (creci.length < 3 || creci.length > 40) nextErrors.creci = "Informe o CRECI com 3 a 40 caracteres."
-      if (city.length < 2 || city.length > 120) nextErrors.cidade = "Informe uma cidade com 2 a 120 caracteres."
-      if (!brazilUfs.includes(values.uf)) nextErrors.uf = "Selecione uma UF válida."
+      if (creci && (creci.length < 3 || creci.length > 40)) nextErrors.creci = "Informe o CRECI com 3 a 40 caracteres."
+      if (city && (city.length < 2 || city.length > 120)) nextErrors.cidade = "Informe uma cidade com 2 a 120 caracteres."
+      if (values.uf && !brazilUfs.includes(values.uf)) nextErrors.uf = "Selecione uma UF válida."
       if (!values.aceite_lgpd) nextErrors.aceite_lgpd = "O aceite LGPD é obrigatório para enviar."
     }
 
@@ -746,7 +746,7 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
     return (
       <div className="registration-fields registration-fields--single">
         <label className={fieldClass("creci")}>
-          <span>CRECI *</span>
+          <span>CRECI (opcional)</span>
           <input
             value={values.creci}
             onChange={(event) => updateValue("creci", event.target.value.slice(0, 40))}
@@ -756,7 +756,7 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
         </label>
 
         <label className={fieldClass("cidade")}>
-          <span>Cidade *</span>
+          <span>Cidade (opcional)</span>
           <input
             value={values.cidade}
             onChange={(event) => updateValue("cidade", event.target.value.slice(0, 120))}
@@ -767,8 +767,8 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
         </label>
 
         <label className={fieldClass("uf", "registration-field--select")}>
-          <span>UF *</span>
-          <select value={values.uf} onChange={(event) => updateValue("uf", event.target.value)} aria-label="UF">
+          <span>UF (opcional)</span>
+          <select value={values.uf} onChange={(event) => updateValue("uf", event.target.value)} aria-label="UF opcional">
             <option value="">Selecione</option>
             {brazilUfs.map((uf) => (
               <option key={uf} value={uf}>
@@ -804,7 +804,7 @@ export function BrokerRegistrationModal({ isOpen, onClose }: BrokerRegistrationM
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className={`registration-modal registration-modal--broker ${isRecoveryPromptOpen ? "registration-modal--recovery" : ""}`}
+          className={`registration-modal registration-modal--broker ${currentStep === 1 && !isSuccess && !isRecoveryPromptOpen ? "registration-modal--broker-profile-step" : ""} ${isRecoveryPromptOpen ? "registration-modal--recovery" : ""}`}
           role="presentation"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

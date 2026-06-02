@@ -1754,6 +1754,116 @@ main {
   border-color: #1e2a78;
 }
 
+@media (min-width: 761px) {
+  .registration-modal--address-step .registration-modal__main {
+    padding-top: clamp(14px, 2.1svh, 24px);
+    padding-bottom: clamp(12px, 1.8svh, 20px);
+    overflow-y: hidden;
+  }
+
+  .registration-modal--address-step .registration-stepper {
+    --registration-stepper-dot-size: clamp(36px, 3.2vw, 44px);
+    gap: clamp(12px, 2vw, 28px);
+    margin-bottom: clamp(8px, 1.2svh, 14px);
+  }
+
+  .registration-modal--address-step .registration-stepper__item {
+    gap: clamp(5px, 0.7svh, 8px);
+  }
+
+  .registration-modal--address-step .registration-stepper__dot {
+    width: var(--registration-stepper-dot-size);
+    height: var(--registration-stepper-dot-size);
+    font-size: clamp(18px, 1.7vw, 22px);
+  }
+
+  .registration-modal--address-step .registration-stepper__label {
+    font-size: clamp(12px, 1vw, 14px);
+  }
+
+  .registration-modal--address-step .registration-step__header {
+    margin-bottom: clamp(7px, 1svh, 12px);
+  }
+
+  .registration-modal--address-step .registration-step__header h2 {
+    font-size: clamp(25px, 2.45vw, 30px);
+    line-height: 1.02;
+  }
+
+  .registration-modal--address-step .registration-step__header p {
+    max-width: 500px;
+    margin-top: clamp(4px, 0.6svh, 7px);
+    font-size: clamp(13px, 1.2vw, 15px);
+    line-height: 1.23;
+  }
+
+  .registration-modal--address-step .registration-fields--single {
+    gap: clamp(5px, 0.85svh, 8px);
+  }
+
+  .registration-modal--address-step .registration-field {
+    gap: clamp(4px, 0.6svh, 6px);
+    font-size: clamp(13px, 1.05vw, 14px);
+  }
+
+  .registration-modal--address-step .registration-field input,
+  .registration-modal--address-step .registration-field select {
+    height: clamp(37px, 4.6svh, 44px);
+    padding: 0 14px;
+    font-size: clamp(14px, 1.15vw, 15px);
+  }
+
+  .registration-modal--address-step .registration-field__hint,
+  .registration-modal--address-step .registration-field__error {
+    font-size: 11px;
+    line-height: 1.15;
+  }
+
+  .registration-modal--address-step .registration-checks {
+    gap: clamp(4px, 0.7svh, 7px);
+    padding: clamp(8px, 1.2svh, 12px) 12px;
+  }
+
+  .registration-modal--address-step .registration-check {
+    grid-template-columns: 20px 1fr;
+    gap: 8px;
+    font-size: clamp(11px, 0.98vw, 13px);
+    line-height: 1.18;
+  }
+
+  .registration-modal--address-step .registration-check input {
+    width: 20px;
+    height: 20px;
+  }
+
+  .registration-modal--address-step .registration-check input:checked::after {
+    left: 5px;
+    top: 2px;
+    width: 6px;
+    height: 10px;
+  }
+
+  .registration-modal--address-step .registration-modal__footer {
+    margin-top: clamp(8px, 1.1svh, 12px);
+    padding-top: clamp(8px, 1.1svh, 12px);
+  }
+
+  .registration-modal--address-step .registration-button {
+    min-height: clamp(42px, 5.2svh, 50px);
+    font-size: clamp(15px, 1.35vw, 17px);
+  }
+
+  .registration-modal--address-step .registration-button--primary {
+    min-width: min(100%, 320px);
+  }
+}
+
+@media (min-width: 761px) and (max-height: 720px) {
+  .registration-modal--address-step .registration-modal__main {
+    overflow-y: auto;
+  }
+}
+
 .registration-arrow {
   width: 27px;
   height: 27px;
@@ -2388,6 +2498,115 @@ main {
 .registration-modal--broker .registration-button {
   min-height: clamp(42px, 5.6svh, 50px);
   font-size: clamp(15px, 1.4vw, 17px);
+}
+
+@media (min-width: 761px) {
+  .registration-modal--broker-profile-step .registration-modal__main {
+    padding-top: clamp(14px, 2svh, 22px);
+    padding-bottom: clamp(12px, 1.8svh, 18px);
+    overflow-y: hidden;
+  }
+
+  .registration-modal--broker-profile-step .registration-stepper {
+    --registration-stepper-dot-size: clamp(36px, 3.2vw, 44px);
+    margin-bottom: clamp(8px, 1.2svh, 14px);
+  }
+
+  .registration-modal--broker-profile-step .registration-stepper__item {
+    gap: clamp(5px, 0.7svh, 8px);
+  }
+
+  .registration-modal--broker-profile-step .registration-stepper__dot {
+    width: var(--registration-stepper-dot-size);
+    height: var(--registration-stepper-dot-size);
+    font-size: clamp(18px, 1.7vw, 22px);
+  }
+
+  .registration-modal--broker-profile-step .registration-stepper__label {
+    font-size: clamp(12px, 1vw, 14px);
+  }
+
+  .registration-modal--broker-profile-step .registration-step__header {
+    margin-bottom: clamp(7px, 1svh, 12px);
+  }
+
+  .registration-modal--broker-profile-step .registration-step__header h2 {
+    font-size: clamp(25px, 2.4vw, 30px);
+    line-height: 1.02;
+  }
+
+  .registration-modal--broker-profile-step .registration-step__header p {
+    margin-top: clamp(4px, 0.6svh, 7px);
+    font-size: clamp(13px, 1.2vw, 15px);
+    line-height: 1.22;
+  }
+
+  .registration-modal--broker-profile-step .registration-fields--single {
+    gap: clamp(6px, 0.9svh, 9px);
+  }
+
+  .registration-modal--broker-profile-step .registration-field {
+    gap: clamp(4px, 0.6svh, 6px);
+  }
+
+  .registration-modal--broker-profile-step .registration-field input {
+    height: clamp(37px, 4.6svh, 43px);
+    padding: 0 14px;
+  }
+
+  .registration-modal--broker-profile-step .registration-radio-group {
+    gap: clamp(6px, 0.9svh, 9px);
+    padding: clamp(8px, 1.15svh, 12px) 12px;
+  }
+
+  .registration-modal--broker-profile-step .registration-radio-grid {
+    gap: clamp(6px, 0.9svh, 9px);
+  }
+
+  .registration-modal--broker-profile-step .registration-radio-card {
+    min-height: clamp(40px, 5svh, 48px);
+    grid-template-columns: 16px 1fr;
+    gap: 10px;
+    padding: clamp(7px, 1svh, 9px) 12px;
+  }
+
+  .registration-modal--broker-profile-step .registration-radio-card input {
+    width: 15px;
+    height: 15px;
+  }
+
+  .registration-modal--broker-profile-step .registration-radio-card input:checked {
+    box-shadow: inset 0 0 0 4px #1e2a78;
+  }
+
+  .registration-modal--broker-profile-step .registration-radio-card span {
+    gap: 2px;
+  }
+
+  .registration-modal--broker-profile-step .registration-radio-card strong {
+    font-size: 13px;
+    line-height: 1.02;
+  }
+
+  .registration-modal--broker-profile-step .registration-radio-card small {
+    font-size: 10.5px;
+    line-height: 1.1;
+  }
+
+  .registration-modal--broker-profile-step .registration-modal__footer {
+    margin-top: clamp(8px, 1.1svh, 12px);
+    padding-top: clamp(8px, 1.1svh, 12px);
+  }
+
+  .registration-modal--broker-profile-step .registration-button {
+    min-height: clamp(42px, 5.2svh, 50px);
+  }
+}
+
+@media (min-width: 761px) and (max-height: 720px) {
+  .registration-modal--broker-profile-step .registration-modal__main {
+    overflow-y: auto;
+  }
 }
 
 .whatsapp-float {
@@ -3530,22 +3749,30 @@ main {
 
 .trust-carousel__track {
   --trust-card-gap: clamp(26px, 2.1vw, 40px);
+  --trust-card-width: clamp(330px, 22.5vw, 432px);
+  --trust-loop-distance: calc((var(--trust-card-width) + var(--trust-card-gap)) * 5);
   display: flex;
+  flex-wrap: nowrap;
   width: max-content;
   animation: trust-carousel-scroll 32s linear infinite;
+  transform: translate3d(0, 0, 0);
   will-change: transform;
 }
 
 .trust-carousel__group {
   display: flex;
   flex: 0 0 auto;
+  width: max-content;
+  min-width: max-content;
   gap: var(--trust-card-gap);
   padding-right: var(--trust-card-gap);
 }
 
 .trust-carousel__card {
   display: grid;
-  flex: 0 0 clamp(330px, 22.5vw, 432px);
+  width: var(--trust-card-width);
+  min-width: var(--trust-card-width);
+  flex: 0 0 var(--trust-card-width);
   height: clamp(178px, 12.5vw, 240px);
   align-items: center;
   justify-items: center;
@@ -3627,7 +3854,7 @@ main {
   }
 
   to {
-    transform: translate3d(-50%, 0, 0);
+    transform: translate3d(calc(-1 * var(--trust-loop-distance)), 0, 0);
   }
 }
 
@@ -5760,7 +5987,7 @@ main {
 
   .products-card__content {
     align-content: end;
-    padding: 28px 22px 32px;
+    padding: 28px 22px clamp(42px, 9svh, 72px);
   }
 
   .products-card__content h3 {
@@ -5772,7 +5999,7 @@ main {
     max-width: 300px;
     margin-top: 12px;
     font-size: clamp(13px, 3.45vw, 15px);
-    line-height: 1.28;
+    line-height: 1.32;
   }
 
   .coverages-section__inner {
@@ -5929,11 +6156,11 @@ main {
 
   .trust-carousel__track {
     --trust-card-gap: 14px;
+    --trust-card-width: clamp(186px, 47vw, 232px);
     animation-duration: 38s;
   }
 
   .trust-carousel__card {
-    flex-basis: clamp(186px, 47vw, 232px);
     height: clamp(104px, 26vw, 126px);
     padding: 22px;
     border-radius: 14px;
@@ -6793,11 +7020,15 @@ main {
   }
 
   .products-stack {
-    margin-top: clamp(-92px, -10svh, -64px);
+    margin-top: clamp(42px, 11vw, 58px);
   }
 
   .products-section__inner {
-    padding-bottom: clamp(28px, 8vw, 42px);
+    padding-bottom: clamp(48px, 13vw, 72px);
+  }
+
+  .coverages-section__inner {
+    padding-top: clamp(52px, 14vw, 76px);
   }
 
   .coverages-section__layout,
@@ -6806,7 +7037,7 @@ main {
   }
 
   .coverages-section {
-    margin-top: clamp(-128px, -14svh, -96px);
+    margin-top: 0;
   }
 
   .trust-section__inner {

@@ -1071,7 +1071,7 @@ export function RegistrationModal({ isOpen, onClose }: RegistrationModalProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className={`registration-modal ${isRecoveryPromptOpen ? "registration-modal--recovery" : ""}`}
+          className={`registration-modal ${currentStep === 2 && !isSuccess && !isRecoveryPromptOpen ? "registration-modal--address-step" : ""} ${isRecoveryPromptOpen ? "registration-modal--recovery" : ""}`}
           role="presentation"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
