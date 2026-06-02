@@ -621,9 +621,11 @@ main {
 
 .registration-modal__sheet {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: min(100%, clamp(780px, 72vw, 1020px));
   max-height: calc(100svh - 24px);
-  overflow: visible;
+  overflow: hidden;
   border-radius: clamp(20px, 2vw, 28px);
   background: #d8dcf0;
   color: #03051f;
@@ -638,7 +640,9 @@ main {
 }
 
 .registration-modal__sheet--recovery {
+  display: block;
   width: min(calc(100vw - 32px), clamp(360px, 36vw, 440px));
+  overflow: visible;
   border: 1px solid rgba(201, 205, 230, 0.3);
   border-radius: clamp(18px, 1.8vw, 24px);
   background:
@@ -653,8 +657,10 @@ main {
 .registration-modal__main {
   position: relative;
   z-index: 2;
+  min-height: 0;
   padding: clamp(22px, 3.4svh, 42px) clamp(28px, 5vw, 68px);
-  overflow: visible;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   transition:
     filter 220ms ease,
     opacity 220ms ease;
