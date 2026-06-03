@@ -6465,13 +6465,14 @@ main {
   }
 
   .faq-tabs {
-    justify-content: flex-start;
+    justify-content: center;
     gap: 8px;
-    width: calc(100% + 48px);
-    margin: 32px -24px 0;
+    width: max-content;
+    max-width: 100%;
+    margin: 32px auto 0;
     overflow-x: auto;
     overscroll-behavior-inline: contain;
-    padding: 0 24px 8px;
+    padding: 0 0 8px;
     scrollbar-width: none;
   }
 
