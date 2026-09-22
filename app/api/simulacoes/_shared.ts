@@ -10,6 +10,10 @@ import {
 
 const DEFAULT_BACKEND_URL = "http://127.0.0.1:8000"
 
+function shouldUseNetlifyPreviewFallback() {
+  return process.env.NETLIFY === "true" && !process.env.ONE_BACKEND_URL?.trim()
+}
+
 export function resolveSimulationEndpoint(path = "") {
   const rawBase = process.env.ONE_BACKEND_URL || DEFAULT_BACKEND_URL
   const base = rawBase.replace(/\/+$/, "")
@@ -74,6 +78,10 @@ export async function forwardSimulationRequest({
   payload: unknown
   developmentId?: string
 }) {
+  if (shouldUseNetlifyPreviewFallback()) {
+    return simulationMockResponse(developmentId, "preview_mock")
+  }
+
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15000)
 
@@ -91,11 +99,11 @@ export async function forwardSimulationRequest({
       : { message: await response.text().catch(() => "") }
 
     if (process.env.NODE_ENV !== "production" && [404, 405].includes(response.status)) {
-      return developmentSimulationResponse(developmentId)
+      return simulationMockResponse(developmentId, "development_mock")
     }
     return NextResponse.json(body, { status: response.status })
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") return developmentSimulationResponse(developmentId)
+    if (process.env.NODE_ENV !== "production") return simulationMockResponse(developmentId, "development_mock")
     const isTimeout = error instanceof DOMException && error.name === "AbortError"
     return NextResponse.json(
       {
@@ -110,11 +118,12 @@ export async function forwardSimulationRequest({
   }
 }
 
-function developmentSimulationResponse(id?: string) {
+function simulationMockResponse(id: string | undefined, persistence: "development_mock" | "preview_mock") {
+  const prefix = persistence === "preview_mock" ? "preview" : "local"
   return NextResponse.json(
     {
-      id: id || `local-${crypto.randomUUID()}`,
-      persistence: "development_mock",
+      id: id || `${prefix}-${crypto.randomUUID()}`,
+      persistence,
     },
     { status: id ? 200 : 201 },
   )

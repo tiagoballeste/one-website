@@ -808,6 +808,15 @@ main {
   letter-spacing: -0.03em;
 }
 
+.simulation-field__control input:-webkit-autofill,
+.simulation-field__control input:-webkit-autofill:hover,
+.simulation-field__control input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  box-shadow: 0 0 0 1000px #34416f inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
 .simulation-field__control--currency input {
   padding-left: 14px;
 }

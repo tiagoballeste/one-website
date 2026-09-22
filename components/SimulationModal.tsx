@@ -20,6 +20,7 @@ import {
   type SimulationCalculation,
   type SimulationFormValues,
   type SimulationPayload,
+  type SimulationPersistenceResponse,
 } from "@/lib/simulation"
 import { persistSimulation, trackSimulationWhatsappOpen } from "@/lib/simulation-service"
 
@@ -59,6 +60,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
   const [downloadError, setDownloadError] = useState("")
   const [result, setResult] = useState<SimulationCalculation | null>(null)
   const [simulationId, setSimulationId] = useState<string>()
+  const [simulationPersistence, setSimulationPersistence] = useState<SimulationPersistenceResponse["persistence"]>()
   const [simulatedAt, setSimulatedAt] = useState<Date>()
   const modalRef = useRef<HTMLDivElement | null>(null)
   const exportRef = useRef<HTMLDivElement | null>(null)
@@ -81,6 +83,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
       setDownloadError("")
       setResult(null)
       setSimulationId(undefined)
+      setSimulationPersistence(undefined)
       setSimulatedAt(undefined)
     }, 260)
     return () => window.clearTimeout(resetTimer)
@@ -138,7 +141,8 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
 
   const whatsappUrl = useMemo(() => {
     if (!result || !simulationId) return "#"
-    const simulationReference = simulationId.startsWith("local-") ? "" : `\nSimulação: ${simulationId}`
+    const isTemporarySimulation = simulationId.startsWith("local-") || simulationId.startsWith("preview-")
+    const simulationReference = isTemporarySimulation ? "" : `\nSimulação: ${simulationId}`
     return buildSimulationWhatsAppUrl(
       `Olá! Meu nome é ${normalizeName(values.fullName)} e acabei de fazer uma simulação pelo site da ONE para um aluguel de ${formatBRL(result.rentAmount)}. O valor estimado foi de ${formatBRL(result.cashTotal)} à vista.\nGostaria de conhecer as condições e entender os próximos passos.${simulationReference}`,
     )
@@ -194,6 +198,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
     try {
       const saved = await persistSimulation(payload, simulationId)
       setSimulationId(saved.id)
+      setSimulationPersistence(saved.persistence)
       setValues({
         rentAmount: formatCurrencyInputOnBlur(values.rentAmount),
         fullName: validated.fullName,
@@ -353,7 +358,11 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
                 >
                   <header className="simulation-modal__header simulation-modal__header--result">
                     <h2 id={titleId} ref={resultHeadingRef} tabIndex={-1}>Resultado da<br />simulação</h2>
-                    <p id={descriptionId}>Simulação registrada.</p>
+                    <p id={descriptionId}>
+                      {simulationPersistence === "preview_mock"
+                        ? "Simulação de teste. Dados não registrados."
+                        : "Simulação registrada."}
+                    </p>
                   </header>
 
                   <div className="simulation-result__main">

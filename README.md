@@ -116,6 +116,15 @@ npm run build
 
 O projeto usa `output: "standalone"` em `next.config.ts` para permitir build Docker de producao.
 
+## Preview na Netlify
+
+Um deploy de teste da Netlify sem `ONE_BACKEND_URL` usa persistencia simulada e identifica o resultado como
+`Simulacao de teste. Dados nao registrados.`. Isso permite validar a interface sem fingir que o lead foi salvo.
+
+Para ativar persistencia real na Netlify, configure `ONE_BACKEND_URL` com uma URL externa do backend e publique
+novamente. O backend precisa oferecer `POST /v1/publico/simulacoes` e as demais rotas documentadas em
+[`docs/simulation-backend-contract.md`](docs/simulation-backend-contract.md).
+
 ## Docker Local
 
 Para validar o Compose, crie `.env` e rode:
