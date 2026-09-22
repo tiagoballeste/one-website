@@ -2,12 +2,14 @@
 
 import { useEffect, useRef } from "react"
 import { gsap } from "gsap"
+import { buildOneWhatsAppUrl } from "@/lib/one-contact"
 
 type HeroProps = {
   isReady: boolean
+  onOpenSimulation: () => void
 }
 
-export function Hero({ isReady }: HeroProps) {
+export function Hero({ isReady, onOpenSimulation }: HeroProps) {
   const heroRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -80,6 +82,15 @@ export function Hero({ isReady }: HeroProps) {
             Alternativa moderna ao fiador tradicional e à caução. Avance no contrato de aluguel com
             mais agilidade.
           </p>
+
+          <div className="hero-simulation-cta-wrap hero-reveal">
+            <button className="hero-simulation-cta" type="button" onClick={onOpenSimulation}>
+              <span>Simule agora</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <button className="hero-more hero-reveal" type="button" onClick={scrollToNextSection}>
@@ -97,7 +108,7 @@ export function Hero({ isReady }: HeroProps) {
 
       <a
         className="whatsapp-float"
-        href="https://wa.me/5511970309686"
+        href={buildOneWhatsAppUrl()}
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Falar com a ONE pelo WhatsApp"

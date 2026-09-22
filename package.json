@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -16,7 +16,8 @@
     "next": "^16.0.0",
     "ogl": "^1.0.11",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "html2canvas": "^1.4.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

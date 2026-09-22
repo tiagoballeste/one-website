@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { buildOneWhatsAppUrl } from "@/lib/one-contact"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -467,7 +468,7 @@ export function HowItWorksSection() {
         <div className="how-it-works__closing how-it-works-reveal">
           <img src="/ONE_SHIELD.svg" alt="" aria-hidden="true" />
           <p>Em poucos passos, a ONE ajuda você a substituir o fiador tradicional e avançar no contrato de aluguel com mais agilidade.</p>
-          <a href="https://wa.me/5511970309686" target="_blank" rel="noopener noreferrer">
+          <a href={buildOneWhatsAppUrl()} target="_blank" rel="noopener noreferrer">
             Fale com um especialista
             <ArrowIcon />
           </a>

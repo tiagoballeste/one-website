@@ -70,6 +70,9 @@ sequenceDiagram
 | `/api/imobiliarias` | `POST` | `/v1/publico/imobiliarias` |
 | `/api/corretores` | `POST` | `/v1/publico/corretores` |
 | `/api/imobiliarias/buscar` | `GET` | `/v1/publico/imobiliarias/buscar` quando existir |
+| `/api/simulacoes` | `POST` | `/v1/publico/simulacoes` |
+| `/api/simulacoes/:id` | `PATCH` | `/v1/publico/simulacoes/:id` |
+| `/api/simulacoes/:id/whatsapp` | `POST` | `/v1/publico/simulacoes/:id/whatsapp` |
 
 Observacao: a busca de imobiliarias degrada para lista vazia se o backend ainda nao tiver endpoint publico de busca.
 
@@ -141,6 +144,7 @@ Documentacao completa:
 - [Arquivos ignorados e variaveis](docs/deploy/env-files.md)
 - [Runbook operacional](docs/deploy/runbook-operacional.md)
 - [Troubleshooting](docs/deploy/troubleshooting.md)
+- [Contrato do backend para simulações](docs/simulation-backend-contract.md)
 
 Resumo do deploy:
 

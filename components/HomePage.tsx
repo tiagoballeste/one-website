@@ -15,6 +15,7 @@ import { PartnershipSection } from "@/components/PartnershipSection"
 import { PositioningSection } from "@/components/PositioningSection"
 import { ProductsSection } from "@/components/ProductsSection"
 import { RegistrationModal } from "@/components/RegistrationModal"
+import { SimulationModal } from "@/components/SimulationModal"
 import { SiteHeader } from "@/components/SiteHeader"
 import { SmoothScroll } from "@/components/SmoothScroll"
 import { TrustSection } from "@/components/TrustSection"
@@ -23,8 +24,23 @@ export function HomePage() {
   const [isPartnerSelectionOpen, setIsPartnerSelectionOpen] = useState(false)
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false)
   const [isBrokerRegistrationOpen, setIsBrokerRegistrationOpen] = useState(false)
+  const [isSimulationOpen, setIsSimulationOpen] = useState(false)
   const [isHeroReady, setIsHeroReady] = useState(false)
   const registrationTriggerRef = useRef<HTMLElement | null>(null)
+  const simulationTriggerRef = useRef<HTMLElement | null>(null)
+
+  const openSimulation = useCallback(() => {
+    simulationTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setIsPartnerSelectionOpen(false)
+    setIsRegistrationOpen(false)
+    setIsBrokerRegistrationOpen(false)
+    setIsSimulationOpen(true)
+  }, [])
+
+  const closeSimulation = useCallback(() => {
+    setIsSimulationOpen(false)
+    window.setTimeout(() => simulationTriggerRef.current?.focus(), 260)
+  }, [])
 
   const openPartnerSelection = useCallback(() => {
     registrationTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -72,7 +88,7 @@ export function HomePage() {
       <LogoPreloader onComplete={completeLoader} />
       <SiteHeader onOpenRegistration={openPartnerSelection} />
       <main>
-        <Hero isReady={isHeroReady} />
+        <Hero isReady={isHeroReady} onOpenSimulation={openSimulation} />
         <PositioningSection />
         <HowItWorksSection />
         <ForWhomSection />
@@ -91,6 +107,7 @@ export function HomePage() {
       />
       <RegistrationModal isOpen={isRegistrationOpen} onClose={closeRegistration} />
       <BrokerRegistrationModal isOpen={isBrokerRegistrationOpen} onClose={closeBrokerRegistration} />
+      <SimulationModal isOpen={isSimulationOpen} onClose={closeSimulation} />
     </>
   )
 }

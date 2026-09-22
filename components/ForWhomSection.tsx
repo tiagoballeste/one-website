@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useReducedMotion } from "motion/react"
+import { buildOneWhatsAppUrl } from "@/lib/one-contact"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -179,7 +180,7 @@ export function ForWhomSection() {
           <div className="for-whom-section__actions for-whom-reveal">
             <a
               className="for-whom-cta for-whom-cta--primary"
-              href="https://wa.me/5511970309686"
+              href={buildOneWhatsAppUrl()}
               target="_blank"
               rel="noopener noreferrer"
             >
