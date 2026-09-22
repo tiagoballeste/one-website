@@ -27,7 +27,7 @@ export type SimulationPayload = SimulationCalculation & {
 
 export type SimulationPersistenceResponse = {
   id: string
-  persistence?: "backend" | "development_mock" | "preview_mock"
+  persistence?: "backend" | "google_sheets" | "development_mock" | "preview_mock"
 }
 
 const brlFormatter = new Intl.NumberFormat("pt-BR", {

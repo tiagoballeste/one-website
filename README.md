@@ -2,7 +2,7 @@
 
 Site institucional e de cadastro de parceiros da ONE Fiança Locatícia.
 
-Este projeto é uma aplicação Next.js com rotas internas de API. Ele não deve ser publicado como site estático nem via `output: "export"`, porque os formulários do site chamam rotas server-side em `/api/...`, que fazem proxy para o backend FastAPI.
+Este projeto é uma aplicação Next.js com rotas internas de API. Ele não deve ser publicado como site estático nem via `output: "export"`, porque os formulários do site chamam rotas server-side em `/api/...`. Os cadastros fazem proxy para o backend FastAPI e as simulações podem ser registradas no Google Sheets via Apps Script.
 
 ## Stack
 
@@ -74,6 +74,8 @@ sequenceDiagram
 | `/api/simulacoes/:id` | `PATCH` | `/v1/publico/simulacoes/:id` |
 | `/api/simulacoes/:id/whatsapp` | `POST` | `/v1/publico/simulacoes/:id/whatsapp` |
 
+Quando `SIMULATION_WEBHOOK_URL` e `SIMULATION_WEBHOOK_SECRET` estão definidos, as três rotas de simulação usam o Google Apps Script no lugar do endpoint FastAPI. A URL e a credencial ficam somente no servidor Next.js.
+
 Observacao: a busca de imobiliarias degrada para lista vazia se o backend ainda nao tiver endpoint publico de busca.
 
 ## Ambiente Local
@@ -118,12 +120,10 @@ O projeto usa `output: "standalone"` em `next.config.ts` para permitir build Doc
 
 ## Preview na Netlify
 
-Um deploy de teste da Netlify sem `ONE_BACKEND_URL` usa persistencia simulada e identifica o resultado como
+Um deploy de teste da Netlify sem `SIMULATION_WEBHOOK_URL` e sem `ONE_BACKEND_URL` usa persistencia simulada e identifica o resultado como
 `Simulacao de teste. Dados nao registrados.`. Isso permite validar a interface sem fingir que o lead foi salvo.
 
-Para ativar persistencia real na Netlify, configure `ONE_BACKEND_URL` com uma URL externa do backend e publique
-novamente. O backend precisa oferecer `POST /v1/publico/simulacoes` e as demais rotas documentadas em
-[`docs/simulation-backend-contract.md`](docs/simulation-backend-contract.md).
+Para ativar persistencia real na Netlify, configure `SIMULATION_WEBHOOK_URL` e `SIMULATION_WEBHOOK_SECRET` com os dados da implantação do Google Apps Script e publique novamente. O site continuará usando as rotas internas do Next.js; nenhuma credencial será exposta no navegador.
 
 ## Docker Local
 

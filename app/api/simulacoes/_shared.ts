@@ -11,7 +11,17 @@ import {
 const DEFAULT_BACKEND_URL = "http://127.0.0.1:8000"
 
 function shouldUseNetlifyPreviewFallback() {
-  return process.env.NETLIFY === "true" && !process.env.ONE_BACKEND_URL?.trim()
+  return (
+    process.env.NETLIFY === "true" &&
+    !process.env.SIMULATION_WEBHOOK_URL?.trim() &&
+    !process.env.ONE_BACKEND_URL?.trim()
+  )
+}
+
+function getSimulationWebhookConfig() {
+  const url = process.env.SIMULATION_WEBHOOK_URL?.trim()
+  const secret = process.env.SIMULATION_WEBHOOK_SECRET?.trim()
+  return url && secret ? { url, secret } : null
 }
 
 export function resolveSimulationEndpoint(path = "") {
@@ -78,6 +88,11 @@ export async function forwardSimulationRequest({
   payload: unknown
   developmentId?: string
 }) {
+  const webhook = getSimulationWebhookConfig()
+  if (webhook) {
+    return forwardToGoogleSheets({ webhook, method, path, payload })
+  }
+
   if (shouldUseNetlifyPreviewFallback()) {
     return simulationMockResponse(developmentId, "preview_mock")
   }
@@ -104,6 +119,79 @@ export async function forwardSimulationRequest({
     return NextResponse.json(body, { status: response.status })
   } catch (error) {
     if (process.env.NODE_ENV !== "production") return simulationMockResponse(developmentId, "development_mock")
+    const isTimeout = error instanceof DOMException && error.name === "AbortError"
+    return NextResponse.json(
+      {
+        message: isTimeout
+          ? "A simulação demorou mais que o esperado. Tente novamente."
+          : "Não foi possível registrar a simulação agora. Tente novamente em instantes.",
+      },
+      { status: 502 },
+    )
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function forwardToGoogleSheets({
+  webhook,
+  method,
+  path,
+  payload,
+}: {
+  webhook: { url: string; secret: string }
+  method: "POST" | "PATCH"
+  path?: string
+  payload: unknown
+}) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15000)
+  const pathParts = path ? path.split("/") : []
+  const id = pathParts[0] ? decodeURIComponent(pathParts[0]) : undefined
+  const isWhatsappAction = pathParts[1] === "whatsapp"
+  const action = isWhatsappAction ? "whatsapp" : method === "PATCH" ? "update" : "create"
+
+  const body =
+    action === "whatsapp"
+      ? {
+          secret: webhook.secret,
+          action,
+          id,
+          openedAt:
+            payload && typeof payload === "object" && "openedAt" in payload
+              ? String(payload.openedAt)
+              : new Date().toISOString(),
+        }
+      : { secret: webhook.secret, action, id, payload }
+
+  try {
+    const response = await fetch(webhook.url, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      redirect: "follow",
+      signal: controller.signal,
+    })
+    const result = (await response.json().catch(() => ({}))) as {
+      ok?: boolean
+      id?: string
+      message?: string
+      persistence?: string
+    }
+
+    if (!response.ok || result.ok !== true || !result.id) {
+      return NextResponse.json(
+        { message: result.message || "Não foi possível registrar a simulação agora." },
+        { status: response.ok ? 502 : response.status },
+      )
+    }
+
+    return NextResponse.json(
+      { id: result.id, persistence: "google_sheets" },
+      { status: action === "create" ? 201 : 200 },
+    )
+  } catch (error) {
     const isTimeout = error instanceof DOMException && error.name === "AbortError"
     return NextResponse.json(
       {

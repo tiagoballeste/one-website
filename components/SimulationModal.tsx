@@ -67,6 +67,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
   const rentInputRef = useRef<HTMLInputElement | null>(null)
   const resultHeadingRef = useRef<HTMLHeadingElement | null>(null)
   const fieldRefs = useRef<Record<FieldName, HTMLInputElement | null>>({ rentAmount: null, fullName: null, whatsapp: null })
+  const lastSubmittedValuesRef = useRef<{ rentAmount: number; fullName: string; whatsapp: string } | undefined>(undefined)
   const titleId = useId()
   const descriptionId = useId()
   const reduceMotion = useReducedMotion()
@@ -85,6 +86,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
       setSimulationId(undefined)
       setSimulationPersistence(undefined)
       setSimulatedAt(undefined)
+      lastSubmittedValuesRef.current = undefined
     }, 260)
     return () => window.clearTimeout(resetTimer)
   }, [isOpen])
@@ -182,6 +184,21 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
     const validated = validate()
     if (!validated.isValid) return
 
+    const lastSubmittedValues = lastSubmittedValuesRef.current
+    const hasUnchangedValues =
+      result !== null &&
+      simulationId !== undefined &&
+      lastSubmittedValues !== undefined &&
+      lastSubmittedValues.rentAmount === validated.rentAmount &&
+      lastSubmittedValues.fullName === validated.fullName &&
+      lastSubmittedValues.whatsapp === validated.whatsapp
+
+    if (hasUnchangedValues) {
+      setSubmitError("")
+      setView("result")
+      return
+    }
+
     const calculation = calculateSimulation(validated.rentAmount)
     const simulationDate = new Date()
     const payload: SimulationPayload = {
@@ -206,6 +223,11 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
       })
       setResult(calculation)
       setSimulatedAt(simulationDate)
+      lastSubmittedValuesRef.current = {
+        rentAmount: validated.rentAmount,
+        fullName: validated.fullName,
+        whatsapp: validated.whatsapp,
+      }
       setView("result")
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Não foi possível registrar a simulação agora.")
@@ -341,8 +363,20 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
                     <p className="simulation-form__privacy">Seus dados serão utilizados para registrar a simulação e atender esta solicitação.</p>
                     {submitError && <p className="simulation-form__submit-error" role="alert">{submitError}</p>}
 
-                    <button className="simulation-modal__primary" type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? "Calculando..." : "Ver minha simulação"}
+                    <button
+                      className="simulation-modal__primary"
+                      type="submit"
+                      disabled={isSubmitting}
+                      aria-busy={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="simulation-modal__spinner" aria-hidden="true" />
+                          <span>Carregando…</span>
+                        </>
+                      ) : (
+                        "Ver minha simulação"
+                      )}
                     </button>
                     <p className="simulation-form__duration">Leva menos de 1 minuto.</p>
                   </form>

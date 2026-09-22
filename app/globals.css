@@ -872,11 +872,28 @@ main {
 }
 
 .simulation-modal__primary {
+  gap: 10px;
   margin-top: 10px;
   border: 0;
   color: #ffffff;
   background: var(--one-cta-blue);
   box-shadow: 0 16px 34px rgba(12, 48, 177, 0.22);
+}
+
+.simulation-modal__spinner {
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.38);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: simulation-modal-spin 700ms linear infinite;
+}
+
+@keyframes simulation-modal-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .simulation-modal__primary:hover,
