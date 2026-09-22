@@ -153,10 +153,8 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
 
   const whatsappUrl = useMemo(() => {
     if (!result || !simulationId) return "#"
-    const isTemporarySimulation = simulationId.startsWith("local-") || simulationId.startsWith("preview-")
-    const simulationReference = isTemporarySimulation ? "" : `\nSimulação: ${simulationId}`
     return buildSimulationWhatsAppUrl(
-      `Olá! Meu nome é ${normalizeName(values.fullName)} e acabei de fazer uma simulação pelo site da ONE para um aluguel de ${formatBRL(result.rentAmount)}. O valor estimado foi de ${formatBRL(result.cashTotal)} à vista.\nGostaria de conhecer as condições e entender os próximos passos.${simulationReference}`,
+      `Olá! Meu nome é ${normalizeName(values.fullName)} e acabei de fazer uma simulação pelo site da ONE para um aluguel de ${formatBRL(result.rentAmount)}. O valor estimado foi de ${formatBRL(result.cashTotal)} à vista.\nGostaria de conhecer as condições e entender os próximos passos.`,
     )
   }, [result, simulationId, values.fullName])
 
