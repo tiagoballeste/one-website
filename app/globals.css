@@ -444,11 +444,13 @@ main {
   padding-inline: var(--one-cta-padding-x);
   border: 0;
   border-radius: var(--one-cta-radius);
-  color: #ffffff;
-  background: var(--one-cta-blue);
-  box-shadow: 0 16px 34px rgba(12, 48, 177, 0.24);
+  color: #111111;
+  background: #f5bf01;
+  box-shadow:
+    0 0 14px rgba(245, 191, 1, 0.18),
+    0 16px 34px rgba(245, 191, 1, 0.26);
   font-family: inherit;
-  font-size: var(--one-cta-font-size);
+  font-size: clamp(16px, 1.05vw, 19px);
   font-weight: 700;
   letter-spacing: var(--one-cta-letter-spacing);
   white-space: nowrap;
@@ -6776,7 +6778,7 @@ main {
     min-height: 52px;
     padding-inline: 26px;
     border-radius: 10px;
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .hero-simulation-cta svg {
