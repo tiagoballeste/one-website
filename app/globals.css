@@ -1113,6 +1113,11 @@ main {
   stroke-linejoin: round;
 }
 
+.simulation-modal__share-icon,
+.simulation-modal__share-label {
+  display: none;
+}
+
 .simulation-modal__secondary:disabled,
 .simulation-modal__quiet:disabled {
   opacity: 0.58;
@@ -7001,6 +7006,16 @@ main {
   .simulation-modal__download svg {
     width: 27px;
     height: 27px;
+  }
+
+  .simulation-modal__download-icon,
+  .simulation-modal__download-label {
+    display: none;
+  }
+
+  .simulation-modal__share-icon,
+  .simulation-modal__share-label {
+    display: block;
   }
 
   .simulation-modal__sheet--result .simulation-modal__primary,

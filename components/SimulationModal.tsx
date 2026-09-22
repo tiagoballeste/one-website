@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react"
 import { SimulationExportCard } from "@/components/SimulationExportCard"
 import { WhatsappIcon } from "@/components/icons/WhatsappIcon"
 import { buildSimulationWhatsAppUrl } from "@/lib/one-contact"
-import { downloadSimulationImage } from "@/lib/simulation-image"
+import { downloadSimulationImage, shareSimulationImage } from "@/lib/simulation-image"
 import {
   MAX_RENT_AMOUNT,
   calculateSimulation,
@@ -44,8 +44,16 @@ function CloseIcon() {
 
 function DownloadIcon() {
   return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
+    <svg className="simulation-modal__download-icon" viewBox="0 0 32 32" aria-hidden="true">
       <path d="M16 4v17m0 0 7-7m-7 7-7-7M5 21v6h22v-6" />
+    </svg>
+  )
+}
+
+function ShareIcon() {
+  return (
+    <svg className="simulation-modal__share-icon" viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M16 21V4m0 0-7 7m7-7 7 7M5 18v9h22v-9" />
     </svg>
   )
 }
@@ -242,13 +250,21 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
 
   const handleDownload = async () => {
     if (!result || !exportRef.current || isDownloading) return
+    const shouldShare = window.matchMedia("(max-width: 760px)").matches
     setIsDownloading(true)
     setDownloadError("")
     try {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-      await downloadSimulationImage({ element: exportRef.current, fullName: values.fullName, generatedAt: simulatedAt })
-    } catch {
-      setDownloadError("Não foi possível baixar a simulação. Tente novamente.")
+      const imageOptions = { element: exportRef.current, fullName: values.fullName, generatedAt: simulatedAt }
+      if (shouldShare) await shareSimulationImage(imageOptions)
+      else await downloadSimulationImage(imageOptions)
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return
+      setDownloadError(
+        shouldShare
+          ? "Não foi possível compartilhar a simulação. Tente novamente."
+          : "Não foi possível baixar a simulação. Tente novamente.",
+      )
     } finally {
       setIsDownloading(false)
     }
@@ -443,7 +459,13 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
                     aria-describedby={downloadError ? "simulation-download-error" : undefined}
                   >
                     <DownloadIcon />
-                    <span>{isDownloading ? "Gerando..." : "Baixar simulação"}</span>
+                    <ShareIcon />
+                    <span className="simulation-modal__download-label">
+                      {isDownloading ? "Gerando..." : "Baixar simulação"}
+                    </span>
+                    <span className="simulation-modal__share-label">
+                      {isDownloading ? "Preparando..." : "Compartilhar simulação"}
+                    </span>
                   </button>
                   {downloadError && <p id="simulation-download-error" className="simulation-modal__download-error" role="alert">{downloadError}</p>}
                   <button className="simulation-modal__quiet" type="button" onClick={closeModal} disabled={isDownloading}>Fechar</button>
