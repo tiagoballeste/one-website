@@ -76,6 +76,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
   const resultHeadingRef = useRef<HTMLHeadingElement | null>(null)
   const fieldRefs = useRef<Record<FieldName, HTMLInputElement | null>>({ rentAmount: null, fullName: null, whatsapp: null })
   const lastSubmittedValuesRef = useRef<{ rentAmount: number; fullName: string; whatsapp: string } | undefined>(undefined)
+  const submitLockRef = useRef(false)
   const titleId = useId()
   const descriptionId = useId()
   const reduceMotion = useReducedMotion()
@@ -95,6 +96,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
       setSimulationPersistence(undefined)
       setSimulatedAt(undefined)
       lastSubmittedValuesRef.current = undefined
+      submitLockRef.current = false
     }, 260)
     return () => window.clearTimeout(resetTimer)
   }, [isOpen])
@@ -164,13 +166,13 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
     setSubmitError("")
   }
 
-  const validate = () => {
+  const validate = (formValues: SimulationFormValues) => {
     const nextErrors: FormErrors = {}
-    const rentAmount = parseCurrencyInput(values.rentAmount)
-    const fullName = normalizeName(values.fullName)
-    const whatsapp = normalizeWhatsapp(values.whatsapp)
+    const rentAmount = parseCurrencyInput(formValues.rentAmount)
+    const fullName = normalizeName(formValues.fullName)
+    const whatsapp = normalizeWhatsapp(formValues.whatsapp)
 
-    if (!values.rentAmount) nextErrors.rentAmount = "Informe o valor mensal do aluguel."
+    if (!formValues.rentAmount) nextErrors.rentAmount = "Informe o valor mensal do aluguel."
     else if (rentAmount <= 0) nextErrors.rentAmount = "Informe um valor de aluguel maior que zero."
     else if (rentAmount > MAX_RENT_AMOUNT) nextErrors.rentAmount = "Informe um aluguel de até R$ 10.000.000,00."
 
@@ -188,9 +190,25 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (isSubmitting) return
-    const validated = validate()
-    if (!validated.isValid) return
+    if (submitLockRef.current) return
+    submitLockRef.current = true
+
+    const readInputValue = (name: FieldName, fallback: string) => {
+      const control = event.currentTarget.elements.namedItem(name)
+      return control instanceof HTMLInputElement ? control.value : fallback
+    }
+    const submittedValues: SimulationFormValues = {
+      rentAmount: formatCurrencyInput(readInputValue("rentAmount", values.rentAmount)),
+      fullName: readInputValue("fullName", values.fullName),
+      whatsapp: formatWhatsapp(readInputValue("whatsapp", values.whatsapp)),
+    }
+
+    setValues(submittedValues)
+    const validated = validate(submittedValues)
+    if (!validated.isValid) {
+      submitLockRef.current = false
+      return
+    }
 
     const lastSubmittedValues = lastSubmittedValuesRef.current
     const hasUnchangedValues =
@@ -204,6 +222,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
     if (hasUnchangedValues) {
       setSubmitError("")
       setView("result")
+      submitLockRef.current = false
       return
     }
 
@@ -225,7 +244,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
       setSimulationId(saved.id)
       setSimulationPersistence(saved.persistence)
       setValues({
-        rentAmount: formatCurrencyInputOnBlur(values.rentAmount),
+        rentAmount: formatCurrencyInputOnBlur(submittedValues.rentAmount),
         fullName: validated.fullName,
         whatsapp: formatWhatsapp(validated.whatsapp),
       })
@@ -241,6 +260,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
       setSubmitError(error instanceof Error ? error.message : "Não foi possível registrar a simulação agora.")
     } finally {
       setIsSubmitting(false)
+      submitLockRef.current = false
     }
   }
 
