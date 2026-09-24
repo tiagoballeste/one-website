@@ -22,9 +22,25 @@ function formatSimulationDate(date: Date) {
   return `Simulação realizada em ${day}, às ${time}`
 }
 
+function compactCurrencyClass(value: string) {
+  return value.length > 14 ? "is-compact" : undefined
+}
+
+function nameClass(value: string) {
+  if (value.length > 64) return "is-extra-compact"
+  if (value.length > 36) return "is-compact"
+  return undefined
+}
+
 export const SimulationExportCard = forwardRef<HTMLDivElement, SimulationExportCardProps>(
   function SimulationExportCard({ result, fullName, whatsapp, simulatedAt }, ref) {
+    const normalizedFullName = normalizeName(fullName)
+    const rentAmount = formatBRL(result.rentAmount)
     const cashTotal = formatBRL(result.cashTotal)
+    const fiveInstallmentValue = formatBRL(result.fiveInstallmentValue)
+    const fiveInstallmentTotal = formatBRL(result.fiveInstallmentTotal)
+    const twelveInstallmentValue = formatBRL(result.twelveInstallmentValue)
+    const twelveInstallmentTotal = formatBRL(result.twelveInstallmentTotal)
 
     return (
       <div className="simulation-export-stage" aria-hidden="true">
@@ -49,7 +65,7 @@ export const SimulationExportCard = forwardRef<HTMLDivElement, SimulationExportC
             <div className="simulation-export__applicant-grid">
               <div>
                 <span>Nome</span>
-                <strong>{normalizeName(fullName)}</strong>
+                <strong className={nameClass(normalizedFullName)}>{normalizedFullName}</strong>
               </div>
               <div>
                 <span>WhatsApp</span>
@@ -62,25 +78,25 @@ export const SimulationExportCard = forwardRef<HTMLDivElement, SimulationExportC
           <section className="simulation-export__card simulation-export__summary">
             <h3>Resumo da Simulação</h3>
             <span>Valor mensal do aluguel</span>
-            <strong className="simulation-export__rent">{formatBRL(result.rentAmount)}</strong>
+            <strong className={`simulation-export__rent ${compactCurrencyClass(rentAmount) ?? ""}`.trim()}>{rentAmount}</strong>
             <div className="simulation-export__divider" />
 
             <div className="simulation-export__payment-layout">
               <div className="simulation-export__cash">
                 <span>Seguro estimado</span>
-                <strong className={cashTotal.length > 14 ? "is-compact" : undefined}>{cashTotal}</strong>
+                <strong className={compactCurrencyClass(cashTotal)}>{cashTotal}</strong>
                 <small>À vista</small>
               </div>
               <div className="simulation-export__installments">
                 <div className="simulation-export__installment">
-                  <span>5x no cartão de:</span>
-                  <strong>{formatBRL(result.fiveInstallmentValue)}</strong>
-                  <small>Total de: {formatBRL(result.fiveInstallmentTotal)}</small>
+                  <span>em 5x no cartão de:</span>
+                  <strong className={compactCurrencyClass(fiveInstallmentValue)}>{fiveInstallmentValue}</strong>
+                  <small className={compactCurrencyClass(fiveInstallmentTotal)}>total de: {fiveInstallmentTotal}</small>
                 </div>
                 <div className="simulation-export__installment">
-                  <span>12x no cartão de:</span>
-                  <strong>{formatBRL(result.twelveInstallmentValue)}</strong>
-                  <small>Total de: {formatBRL(result.twelveInstallmentTotal)}</small>
+                  <span>em 12x no cartão de:</span>
+                  <strong className={compactCurrencyClass(twelveInstallmentValue)}>{twelveInstallmentValue}</strong>
+                  <small className={compactCurrencyClass(twelveInstallmentTotal)}>total de: {twelveInstallmentTotal}</small>
                 </div>
               </div>
             </div>

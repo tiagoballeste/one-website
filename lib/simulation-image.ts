@@ -53,9 +53,9 @@ export async function createSimulationImageFile({ element, fullName, generatedAt
   const { default: html2canvas } = await import("html2canvas")
   const canvas = await html2canvas(element, {
     width: 1080,
-    height: 1350,
+    height: 1650,
     windowWidth: 1080,
-    windowHeight: 1350,
+    windowHeight: 1650,
     scale: 1,
     backgroundColor: "#071333",
     useCORS: true,

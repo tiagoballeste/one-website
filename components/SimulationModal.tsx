@@ -58,6 +58,10 @@ function ShareIcon() {
   )
 }
 
+function compactCurrencyClass(value: number) {
+  return formatBRL(value).length > 14 ? "is-compact" : undefined
+}
+
 export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
   const [view, setView] = useState<"form" | "result">("form")
   const [values, setValues] = useState<SimulationFormValues>(INITIAL_VALUES)
@@ -435,20 +439,20 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
 
                   <div className="simulation-result__main">
                     <span>Seguro estimado</span>
-                    <strong>{formatBRL(result.cashTotal)}</strong>
+                    <strong className={compactCurrencyClass(result.cashTotal)}>{formatBRL(result.cashTotal)}</strong>
                     <p>À vista</p>
                   </div>
 
                   <div className="simulation-result__payments" aria-label="Formas de pagamento estimadas">
                     <div className="simulation-result__payment">
-                      <span>5x no cartão de:</span>
-                      <strong>{formatBRL(result.fiveInstallmentValue)}</strong>
-                      <small>Total de: {formatBRL(result.fiveInstallmentTotal)}</small>
+                      <span>em 5x no cartão de:</span>
+                      <strong className={compactCurrencyClass(result.fiveInstallmentValue)}>{formatBRL(result.fiveInstallmentValue)}</strong>
+                      <small className={compactCurrencyClass(result.fiveInstallmentTotal)}>total de: {formatBRL(result.fiveInstallmentTotal)}</small>
                     </div>
                     <div className="simulation-result__payment">
-                      <span>12x no cartão de:</span>
-                      <strong>{formatBRL(result.twelveInstallmentValue)}</strong>
-                      <small>Total de: {formatBRL(result.twelveInstallmentTotal)}</small>
+                      <span>em 12x no cartão de:</span>
+                      <strong className={compactCurrencyClass(result.twelveInstallmentValue)}>{formatBRL(result.twelveInstallmentValue)}</strong>
+                      <small className={compactCurrencyClass(result.twelveInstallmentTotal)}>total de: {formatBRL(result.twelveInstallmentTotal)}</small>
                     </div>
                   </div>
 
